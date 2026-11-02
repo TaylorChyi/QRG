@@ -13,12 +13,14 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory
 from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import HTTPException
+import zxingcpp
 
 from qrg import LogoSizeError, QRSettings, color, logo_options, render_qr
 
 ROOT = Path(__file__).resolve().parent
 MAX_LOGO_BYTES = 2 * 1024 * 1024
 MAX_LOGO_PIXELS = 4096 * 4096
+MAX_DECODE_BYTES = 2 * 1024 * 1024
 app = Flask(__name__, template_folder='web/templates', static_folder='web/static')
 app.config.update(
     MAX_CONTENT_LENGTH=3 * 1024 * 1024,
@@ -141,7 +143,7 @@ def response_headers(response):
 @app.errorhandler(HTTPException)
 def http_error(error):
     if request.path.startswith('/api/'):
-        messages = {400: '请求必须为有效的 JSON 对象', 413: '请求过大，Logo 文件不能超过 2 MiB',
+        messages = {400: '请求必须为有效的 JSON 对象', 413: '请求过大，图片文件不能超过 2 MiB',
                     415: '请使用 application/json 请求', 404: '接口不存在', 405: '请求方法不支持'}
         return jsonify(error=messages.get(error.code, '请求失败')), error.code
     return error
@@ -160,6 +162,51 @@ def icon():
 @app.get('/healthz')
 def health():
     return jsonify(status='ok')
+
+
+@app.post('/api/decode')
+def decode():
+    data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify(error='请求必须为 JSON 对象'), 400
+    value = data.get('image')
+    if not isinstance(value, str) or ',' not in value:
+        return jsonify(error='请提供 PNG、JPEG 或 WebP 二维码图片'), 400
+    header, encoded = value.split(',', 1)
+    formats = {'data:image/png;base64': 'PNG', 'data:image/jpeg;base64': 'JPEG',
+               'data:image/webp;base64': 'WEBP'}
+    if header not in formats:
+        return jsonify(error='二维码图片仅支持 PNG、JPEG 和 WebP'), 400
+    if len(encoded) > 4 * math.ceil(MAX_DECODE_BYTES / 3):
+        return jsonify(error='二维码图片不能超过 2 MiB'), 400
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+        if len(raw) > MAX_DECODE_BYTES:
+            raise ValueError('二维码图片不能超过 2 MiB')
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(raw), formats=tuple(formats.values())) as source:
+                if source.format != formats[header]:
+                    raise ValueError('二维码图片格式与数据不符')
+                if source.width * source.height > MAX_LOGO_PIXELS or max(source.size) > 4096:
+                    raise ValueError('二维码图片宽高不能超过 4096 像素')
+                image = ImageOps.exif_transpose(source).convert('RGBA')
+        if image.getextrema()[3][0] < 255:
+            white = Image.new('RGBA', image.size, 'white')
+            image = Image.alpha_composite(white, image)
+        barcodes = zxingcpp.read_barcodes(image, formats=zxingcpp.BarcodeFormat.QRCode)
+    except binascii.Error:
+        return jsonify(error='二维码图片数据无效'), 400
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError,
+            Image.DecompressionBombWarning, RuntimeError):
+        return jsonify(error='无法读取二维码图片'), 400
+    if not barcodes:
+        return jsonify(error='未识别到二维码，请检查图片和颜色对比度'), 400
+    if len(barcodes) != 1:
+        return jsonify(error='图片中有多个二维码，请只保留一个'), 400
+    return jsonify(content=barcodes[0].text)
 
 
 @app.post('/api/render')

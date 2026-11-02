@@ -30,6 +30,52 @@ class WebTests(unittest.TestCase):
     def render(self, **settings):
         return self.client.post('/api/render', json={'content': 'https://example.com', 'size': 400, **settings})
 
+    def decode(self, image):
+        return self.client.post('/api/decode', json={
+            'image': 'data:image/png;base64,' + base64.b64encode(image).decode('ascii'),
+        })
+
+    def test_decode_generated_qr_and_transparent_background(self):
+        content = 'https://example.com/二维码?source=qrg'
+        cases = ({'background': '#ffffff'}, {'background': 'transparent'},
+                 {'version': 5, 'logo': logo_data(), 'logo_scale': .19, 'logo_padding_px': 1})
+        for settings in cases:
+            with self.subTest(settings=tuple(settings)):
+                image = self.render(content=content, **settings)
+                self.assertEqual(image.status_code, 200, image.json)
+                response = self.decode(image.data)
+                self.assertEqual(response.status_code, 200, response.json)
+                self.assertEqual(response.json, {'content': content})
+                self.assertEqual(response.headers['Cache-Control'], 'no-store')
+
+    def test_decode_rejects_blank_bad_and_oversized_images(self):
+        empty = io.BytesIO()
+        Image.new('RGB', (200, 200), 'white').save(empty, 'PNG')
+        self.assertEqual(self.decode(empty.getvalue()).status_code, 400)
+        self.assertIn('未识别到', self.decode(empty.getvalue()).json['error'])
+        for payload in (None, 1, 'https://example.com/a.png', 'data:image/svg+xml;base64,PHN2Zz4=',
+                        'data:image/png;base64,###', 'data:image/png;base64,bm90IGEgcG5n',
+                        'data:image/png;base64,' + 'A' * 2_800_000):
+            with self.subTest(payload=str(payload)[:50]):
+                response = self.client.post('/api/decode', json={'image': payload})
+                self.assertEqual(response.status_code, 400)
+                self.assertIn('error', response.json)
+        self.assertEqual(self.client.post('/api/decode', json=[]).status_code, 400)
+
+    def test_decode_rejects_multiple_qr_codes(self):
+        first = self.render(content='https://example.com/one')
+        second = self.render(content='https://example.com/two')
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        canvas = Image.new('RGB', (850, 400), 'white')
+        canvas.paste(Image.open(io.BytesIO(first.data)).convert('RGB'), (0, 0))
+        canvas.paste(Image.open(io.BytesIO(second.data)).convert('RGB'), (450, 0))
+        output = io.BytesIO()
+        canvas.save(output, 'PNG')
+        response = self.decode(output.getvalue())
+        self.assertEqual(response.status_code, 400, response.json)
+        self.assertIn('多个二维码', response.json['error'])
+
     def test_page_static_assets_and_health(self):
         page = self.client.get('/')
         self.assertEqual(page.status_code, 200)

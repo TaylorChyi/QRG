@@ -20,9 +20,13 @@ Web 界面直接排列链接、颜色、形状、Logo 和二维码规格，提�
 
 上传 Logo 后可框选实际使用的范围，拖动选区、调整四角或输入上、下、左、右各边裁去的像素数，并在确认后应用到预览及 PNG/SVG 导出。「整张」可恢复完整图片；「调整范围」可重新编辑原图，裁剪也支持撤销/重做。Logo 大小按完整网格选择，例如「5 × 5 格」，图片等比放入所选范围；周围留白按码点提供 0、1、2 档，每档直接对应实际清除的完整码点，0 表示只清除 Logo 槽。大小和留白选项根据当前二维码版本及定位结构调整，隐藏无法放置的组合；缩小二维码后会收敛到可用范围。偶数边长的 Logo 槽会偏离几何中心半格，避免额外清除一行或一列。二维码版本提供自动、1、3、5、10；自动选择仍支持完整版本范围。
 
-链接和 Logo 会发送到当前 QRG 服务器，应用不会将这些内容写入文件、数据库或浏览器持久存储，也不会在应用日志中记录请求正文。反向代理或托管环境的日志策略由部署者管理。Web 版不执行 macOS Vision 自动解码，请用目标设备扫码确认。
+链接右侧的「跳转」可在新标签页打开输入框中的 HTTP/HTTPS 网址，字数统计位于输入框内。预览区的「识别并跳转」会将当前预览 PNG 交给本机或自部署的 QRG 服务器实际解码，再在新标签页打开识别出的网址；识别失败或内容不是网页链接时会显示原因。修改设置后须等待新预览成功，识别过程中修改设置会取消本次跳转。
+
+链接、Logo 和用于识别的二维码图片会发送到当前 QRG 服务器，应用不会将这些内容写入文件、数据库或浏览器持久存储，也不会在应用日志中记录请求正文。反向代理或托管环境的日志策略由部署者管理。Web 版使用 ZXing-C++ 识别二维码；目标设备上的扫码效果仍需实际确认。
 
 Web 界面的导出尺寸提供 256、512、1024、2048、4096 像素，边距提供 0、2、4、8 个码点，均使用下拉菜单，默认分别为 1024 和 4。为限制服务器资源占用，Web 接口支持的输出尺寸为 64–4096 像素，边距为 0–32 个码点；Logo 接受 PNG/JPEG/WebP，文件最多 2 MiB，宽高各不超过 4096 像素；请求最多 3 MiB。内容最多 8192 个 UTF-8 字节，实际二维码容量仍受版本和容错等级限制。SVG 导出不分配整张位图画布，PNG 抗锯齿画布的单边上限为 4096 像素。
+
+识别接口为 `POST /api/decode`，JSON 正文包含 `image` 字段，值为 PNG/JPEG/WebP 的 Base64 data URL。图片最多 2 MiB、宽高各不超过 4096 像素；成功返回 `{"content":"识别出的内容"}`，未识别到二维码、图片无效或包含多个二维码时返回 400 和 `error` 字段。接口只返回内容，网页跳转由浏览器执行。
 
 ### 后续服务器部署
 
@@ -44,7 +48,7 @@ docker compose logs -f qrg
 curl --fail http://127.0.0.1:8000/healthz
 ```
 
-Compose 默认只把容器端口映射到服务器的回环地址，以便由同机反向代理转发。容器以非 root 用户运行、根文件系统只读，无持久卷；重新构建后不需要数据迁移。当前没有登录或账户体系，访问范围、速率限制和 HTTPS 可在反向代理配置。反向代理请求上限应至少为 3 MiB，转发页面、`/static/`、`/icon.png`、`/api/render` 和 `/healthz` 到同一应用，建议在独立域名的根路径部署。此改动只准备部署材料，不会自动部署服务器。
+Compose 默认只把容器端口映射到服务器的回环地址，以便由同机反向代理转发。容器以非 root 用户运行、根文件系统只读，无持久卷；重新构建后不需要数据迁移。当前没有登录或账户体系，访问范围、速率限制和 HTTPS 可在反向代理配置。反向代理请求上限应至少为 3 MiB，转发页面、`/static/`、`/icon.png`、`/api/render`、`/api/decode` 和 `/healthz` 到同一应用，建议在独立域名的根路径部署。此改动只准备部署材料，不会自动部署服务器。
 
 Web 测试可独立运行，或连同现有 CLI 测试运行：
 
@@ -55,13 +59,14 @@ Web 测试可独立运行，或连同现有 CLI 测试运行：
 
 Web 接口测试在 macOS、Linux 均可运行；其中 macOS Vision 的真实解码用例只在 macOS 执行。
 
-可选的浏览器回归覆盖窗口适配、控件键盘操作、主题、Logo 和 PNG/SVG 下载。运行中的 Web 服务之外，仅此项开发检查需要 Node.js、Playwright Core 和 Chrome；Web 应用本身不需要 Node.js 或前端构建。依赖可放在忽略的 `build/` 中：
+可选的浏览器回归覆盖窗口适配、控件键盘操作、主题、Logo、PNG/SVG 下载以及链接和二维码识别跳转。运行中的 Web 服务之外，仅此项开发检查需要 Node.js、Playwright Core 和 Chrome；Web 应用本身不需要 Node.js 或前端构建。依赖可放在忽略的 `build/` 中：
 
 ```sh
 npm install --prefix build/browser-qa --no-package-lock --no-save playwright-core@1.64.1
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_web_ui.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_logo_ui.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_preview_zoom.cjs
+QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_link_decode_ui.cjs
 ```
 
 默认访问 `http://127.0.0.1:8000`，并使用 macOS 的 Google Chrome；其它地址或浏览器路径通过 `BASE_URL`、`BROWSER_EXECUTABLE_PATH` 指定。

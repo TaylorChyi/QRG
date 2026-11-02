@@ -14,6 +14,8 @@
   const status = $('status');
   const pngButton = $('download-png');
   const svgButton = $('download-svg');
+  const openLinkButton = $('open-link');
+  const decodeButton = $('decode-qr');
   const undoButton = $('undo');
   const redoButton = $('redo');
   const zoomOut = $('zoom-out');
@@ -45,6 +47,22 @@
   let logoReadToken = 0;
   let logoOptions = null;
   let previewZoom = 100;
+  let decodeController = null;
+  let decodeWindow = null;
+
+  function webLink(value) {
+    try {
+      const url = new URL(value.trim());
+      return ['http:', 'https:'].includes(url.protocol) ? url : null;
+    } catch { return null; }
+  }
+
+  function cancelDecode() {
+    decodeController?.abort();
+    decodeController = null;
+    decodeWindow?.close();
+    decodeWindow = null;
+  }
 
   function centrePreview() {
     previewViewport.scrollTo({
@@ -96,6 +114,11 @@
     const canExport = readyBlob !== null && readyRevision === revision && !busyExport;
     pngButton.disabled = !canExport;
     svgButton.disabled = !canExport;
+    openLinkButton.disabled = !webLink(settings.content);
+    openLinkButton.title = openLinkButton.disabled ? '请输入完整的 http:// 或 https:// 链接' : '在新标签页打开链接';
+    decodeButton.disabled = readyBlob === null || readyRevision !== revision || decodeController !== null;
+    decodeButton.setAttribute('aria-busy', String(decodeController !== null));
+    decodeButton.querySelector('span').textContent = decodeController ? '识别中…' : '识别并跳转';
     zoomOut.disabled = preview.hidden || previewZoom === 25;
     zoomIn.disabled = preview.hidden || previewZoom === 200;
     zoomReset.disabled = preview.hidden;
@@ -156,6 +179,7 @@
 
   function invalidate() {
     revision += 1;
+    cancelDecode();
     readyBlob = null;
     readyRevision = -1;
     clearTimeout(renderTimer);
@@ -297,6 +321,66 @@
     }
   }
 
+  async function decodeAndOpen() {
+    if (decodeButton.disabled) return;
+    const targetWindow = window.open('about:blank', '_blank');
+    if (!targetWindow) {
+      announce('浏览器阻止了新标签页，请允许此网站打开弹出窗口后重试。', 'error');
+      return;
+    }
+    targetWindow.opener = null;
+    targetWindow.document.title = '正在识别二维码…';
+    targetWindow.document.body.textContent = '正在识别二维码，成功后将打开链接…';
+    const referrer = targetWindow.document.createElement('meta');
+    referrer.name = 'referrer';
+    referrer.content = 'no-referrer';
+    targetWindow.document.head.append(referrer);
+
+    const targetRevision = revision;
+    const activeController = new AbortController();
+    decodeController = activeController;
+    decodeWindow = targetWindow;
+    const timeout = setTimeout(() => activeController.abort(), 15_000);
+    refreshButtons();
+    announce('正在识别二维码…');
+    try {
+      const image = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('无法读取二维码图片，请重试。'));
+        reader.readAsDataURL(readyBlob);
+      });
+      if (targetRevision !== revision) return;
+      activeController.signal.throwIfAborted();
+      const response = await fetch('/api/decode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image }), signal: activeController.signal,
+      });
+      const data = await response.json();
+      if (targetRevision !== revision) return;
+      activeController.signal.throwIfAborted();
+      if (!response.ok) throw new Error(data.error || '二维码识别失败，请调整样式后重试。');
+      const url = typeof data.content === 'string' && webLink(data.content);
+      if (!url) throw new Error('识别成功，但二维码内容不是 http:// 或 https:// 网页链接。');
+      if (targetWindow.closed) throw new Error('新标签页已关闭，请重试。');
+      targetWindow.location.replace(url.href);
+      decodeWindow = null;
+      announce('识别成功，已在新标签页打开链接。');
+    } catch (error) {
+      if (targetRevision !== revision) return;
+      announce(error.name === 'AbortError' ? '识别超时，请重试。'
+        : error instanceof TypeError ? '无法连接 QRG 服务，请检查服务是否正在运行。' : error.message, 'error');
+    } finally {
+      clearTimeout(timeout);
+      if (decodeController === activeController) {
+        decodeWindow?.close();
+        decodeWindow = null;
+        decodeController = null;
+        refreshButtons();
+      }
+    }
+  }
+
   for (const [key, control] of Object.entries(controls)) {
     const event = control.tagName === 'SELECT' || control.type === 'checkbox' ? 'change' : 'input';
     control.addEventListener(event, () => {
@@ -379,6 +463,11 @@
     }
   });
   svgButton.addEventListener('click', exportSvg);
+  openLinkButton.addEventListener('click', () => {
+    const url = webLink(settings.content);
+    if (url) window.open(url.href, '_blank', 'noopener,noreferrer');
+  });
+  decodeButton.addEventListener('click', decodeAndOpen);
   $('theme').addEventListener('change', (event) => {
     const theme = event.target.value;
     if (theme === 'system') document.documentElement.removeAttribute('data-theme');
@@ -398,6 +487,7 @@
   syncControls();
   invalidate();
   window.addEventListener('pagehide', () => {
+    cancelDecode();
     logoReadToken += 1;
     window.QRGLogoCrop.close();
     clearTimeout(renderTimer);

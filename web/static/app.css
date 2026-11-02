@@ -64,7 +64,9 @@ button, label, input, select, textarea { touch-action: manipulation; }
 .field { display: flex; flex-direction: column; min-width: 0; gap: 8px; }
 .field label { color: var(--text); font-size: 13px; font-weight: 550; }
 .field-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.field-label output { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+.content-input { position: relative; }
+.content-input textarea { display: block; padding-bottom: 30px; }
+.content-input output { position: absolute; right: 12px; bottom: 7px; padding: 0 3px; color: var(--faint); background: var(--raised); font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 textarea, select, input[type="number"] { width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 7px; color: var(--text); background: var(--raised); font-size: 14px; transition: border-color .15s, box-shadow .15s; }
 textarea { min-height: 64px; height: 96px; line-height: 1.7; padding: 16px; resize: none; font-size: 15px; }
@@ -93,10 +95,13 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 #logo-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .small-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); color: var(--text); font-size: 13px; cursor: pointer; }
 .small-button .icon { width: 16px; height: 16px; }
-.small-button:hover { border-color: var(--accent); color: var(--accent); }
+.small-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.small-button:disabled, .text-button:disabled { opacity: .45; }
 #logo-file:focus-visible + .upload-button { outline: 2px solid var(--focus); outline-offset: 3px; }
 .text-button { padding: 0 4px; border: 0; background: transparent; color: var(--accent); font-size: 11px; }
-.text-button:hover { text-decoration: underline; }
+.text-button:hover:not(:disabled) { text-decoration: underline; }
+.field-action { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; font-size: 12px; }
+.field-action .icon { width: 13px; height: 13px; }
 .upload-button { min-width: 0; flex: 1; justify-content: flex-start; }
 .logo-options { margin-top: 12px; }
 .logo-options :disabled { opacity: .5; }
@@ -124,7 +129,8 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
   #logo-crop-canvas { max-height: max(80px, calc(100dvh - 450px)); }
 }
 .preview-pane { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; border-left: 1px solid var(--line); background: var(--canvas); }
-.preview-toolbar { display: flex; align-items: center; justify-content: flex-end; padding: 16px 32px; min-height: 72px; color: var(--muted); font-size: 11px; }
+.preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 32px; min-height: 72px; color: var(--muted); font-size: 11px; }
+.decode-button { min-height: 36px; padding: 6px 10px; font-size: 12px; }
 .history-actions { display: flex; align-items: center; gap: 6px; }
 .icon-button { position: relative; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); transition: border-color .15s, color .15s; }
 .icon-button[data-tooltip]::after { content: attr(data-tooltip); position: absolute; top: calc(100% + 7px); right: 0; z-index: 5; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); box-shadow: var(--frame-shadow); color: var(--text); font-size: 10px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; }
