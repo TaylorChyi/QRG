@@ -146,7 +146,7 @@
       stage.classList.remove('is-loading');
       preview.hidden = true;
       placeholder.hidden = false;
-      placeholder.lastElementChild.textContent = '输入链接或文字后自动生成';
+      placeholder.lastElementChild.textContent = '输入链接后自动生成';
       announce();
       return;
     }

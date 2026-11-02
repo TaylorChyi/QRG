@@ -87,7 +87,7 @@ def crop_logo(logo, crop):
 def settings_from_json(data):
     content = data.get('content', '')
     if not isinstance(content, str) or not content:
-        raise ValueError('请输入链接或文字')
+        raise ValueError('请输入链接')
     try:
         content_bytes = content.encode('utf-8')
     except UnicodeEncodeError:
