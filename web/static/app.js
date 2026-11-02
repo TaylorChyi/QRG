@@ -271,6 +271,7 @@
       const previousUrl = imageUrl;
       imageUrl = nextUrl;
       stage.parentElement.style.setProperty('--image-corner-radius', `${result.cornerRadius}%`);
+      stage.classList.toggle('is-transparent', settings.transparent);
       preview.src = nextUrl;
       preview.hidden = false;
       placeholder.hidden = true;

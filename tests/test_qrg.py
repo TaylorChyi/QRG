@@ -95,6 +95,24 @@ class QRTests(unittest.TestCase):
                         point = tuple(round(coordinate * cell) for coordinate in module)
                         self.assertEqual(target.getpixel(point), source.getpixel(point))
 
+    def test_image_and_finder_outer_arcs_have_identical_pixel_coverage(self):
+        # Non-divisible sizes expose a radius calculated from the canvas instead
+        # of the actual module width. Compare only outside the finder's inner ring.
+        for size in (401, 1025, 2050):
+            with self.subTest(size=size):
+                base = QRSettings(content='x', version=1, size=size, margin=4, eye_shape='rounded')
+                rounded = render_qr(QRSettings(**{**base.__dict__, 'image_shape': 'rounded'}), 'png')
+                finder = render_qr(QRSettings(**{**base.__dict__, 'background': (0, 0, 0, 0)}), 'png')
+                cell = size // 29
+                origin = (size - 29 * cell) // 2 + 4 * cell
+                edge = math.ceil(1.5 * cell)
+                with Image.open(io.BytesIO(rounded.data)) as image, Image.open(io.BytesIO(finder.data)) as source:
+                    for y in range(edge):
+                        for x in range(edge - y):
+                            self.assertEqual(image.getpixel((x, y))[3],
+                                             source.getpixel((origin + x, origin + y))[3],
+                                             f'outer arc differs at {(x, y)}')
+
     @unittest.skipUnless(sys.platform == 'darwin', 'macOS Vision 解码校验仅在 macOS 上可用')
     def test_png_decodes_with_logo(self):
         out = self.folder/'out.png'

@@ -248,8 +248,8 @@ def render():
         'X-QRG-Version': str(result.version), 'X-QRG-Modules': str(result.modules),
         'X-QRG-Logo-Max-Modules': str(result.modules // 4),
         'X-QRG-Logo-Options': json.dumps(logo_options(result.version, result.modules), separators=(',', ':')),
-        'X-QRG-Image-Corner-Radius': f'{150 / (result.modules + 2 * settings.margin):.6f}'
-        if settings.image_shape == 'rounded' else '0',
+        'X-QRG-Image-Corner-Radius': f'{100 * result.image_corner_radius / settings.size:.6f}'
+        if result.image_corner_radius else '0',
     }
     if settings.logo_modules is not None:
         headers['X-QRG-Logo-Modules'] = str(settings.logo_modules)

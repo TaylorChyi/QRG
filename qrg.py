@@ -15,6 +15,7 @@ from qrcode.exceptions import DataOverflowError
 
 LEVELS = {'L': qrcode.constants.ERROR_CORRECT_L, 'M': qrcode.constants.ERROR_CORRECT_M,
           'Q': qrcode.constants.ERROR_CORRECT_Q, 'H': qrcode.constants.ERROR_CORRECT_H}
+ROUNDED_CORNER_RADIUS = 1.5
 
 def color(value):
     if value.lower() == 'transparent':
@@ -65,6 +66,7 @@ class RenderResult:
     data: bytes
     version: int
     modules: int
+    image_corner_radius: float
 
 
 def logo_clearance(clearance, version, modules, padding_modules=None, padding_pixels=None, cell_pixels=None):
@@ -192,7 +194,7 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     # Clear the ring so transparent backgrounds remain transparent.
     for index,(x,y) in enumerate(eyes):
         start = len(parts)
-        radius = 0 if args.eye_shape == 'square' else 1.5
+        radius = 0 if args.eye_shape == 'square' else ROUNDED_CORNER_RADIUS
         rect(x,y,7,7,radius,args.color)
         rect(x+1,y+1,5,5,0 if radius == 0 else .8,args.background)
         rect(x+2,y+2,3,3,0 if radius == 0 else .6,args.color)
@@ -212,15 +214,17 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
         data = io.BytesIO(); logo.save(data, format='PNG')
         encoded = base64.b64encode(data.getvalue()).decode('ascii')
         parts.append(f'<image x="{x+args.margin:g}" y="{y+args.margin:g}" width="{lw:g}" height="{lh:g}" href="data:image/png;base64,{encoded}"/>')
+    image_corner_radius = 0
     if args.image_shape == 'rounded':
         # Apply the same outer silhouette to the background, modules and logo.
-        # The first module centre remains inside a 1.5-module corner even at margin 0.
-        parts.insert(1, f'<clipPath id="image-corners"><rect width="{total}" height="{total}" rx="1.5"/></clipPath><g clip-path="url(#image-corners)">')
+        # Use the finder's actual module width, including PNG pixel snapping.
+        image_corner_radius = ROUNDED_CORNER_RADIUS * (px / supersample if image is not None else args.size / total)
+        parts.insert(1, f'<clipPath id="image-corners"><rect width="{total}" height="{total}" rx="{ROUNDED_CORNER_RADIUS:g}"/></clipPath><g clip-path="url(#image-corners)">')
         parts.append('</g>')
         if image is not None:
             mask = Image.new('L', image.size, 0)
             ImageDraw.Draw(mask).rounded_rectangle((0, 0, image.width - 1, image.height - 1),
-                                                    radius=image.width * 1.5 / total, fill=255)
+                                                    radius=image_corner_radius * supersample, fill=255)
             image.putalpha(ImageChops.multiply(image.getchannel('A'), mask))
     parts.append('</svg>')
     if output_format == 'svg':
@@ -231,7 +235,7 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
         buffer = io.BytesIO()
         image.save(buffer, 'PNG')
         data = buffer.getvalue()
-    return RenderResult(data, qr.version, n)
+    return RenderResult(data, qr.version, n, image_corner_radius)
 
 def main():
     p = argparse.ArgumentParser(description='生成可自定义样式的二维码（PNG 或 SVG）')

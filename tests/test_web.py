@@ -103,7 +103,7 @@ class WebTests(unittest.TestCase):
             with self.subTest(eye_shape=eye_shape):
                 png = self.render(content='x', image_shape='rounded', eye_shape=eye_shape, margin=4, version=1)
                 self.assertEqual(png.status_code, 200, png.json)
-                self.assertAlmostEqual(float(png.headers['X-QRG-Image-Corner-Radius']), 150 / 29, places=5)
+                self.assertAlmostEqual(float(png.headers['X-QRG-Image-Corner-Radius']), 100 * (400 // 29) * 1.5 / 400, places=5)
                 with Image.open(io.BytesIO(png.data)) as image:
                     self.assertEqual(image.getpixel((0, 0))[3], 0)
                     self.assertEqual(image.getpixel((image.width // 2, 0))[3], 255)

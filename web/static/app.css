@@ -9,7 +9,6 @@
   --shadow: 0 4px 12px #252b4214, 0 24px 54px #252b4210; --frame-shadow: 0 3px 18px #252b4204;
   --checker: #e5e7ed; --checker-base: #ffffff;
   --crop-scrim: #20233099;
-  --preview-paper: #ffffff; --preview-ink: #202330;
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -144,10 +143,11 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .preview-viewport::-webkit-scrollbar { display: none; }
 .preview-viewport:focus-visible { outline-offset: -3px; }
 .preview-surface { --preview-size: calc(min(100cqw, max(48px, 100cqh - 2 * var(--preview-gutter))) * var(--preview-zoom, 1)); display: grid; place-items: center; padding-block: var(--preview-gutter); width: max(100%, var(--preview-size)); height: max(100%, calc(var(--preview-size) + 2 * var(--preview-gutter))); }
-.preview-card { width: var(--preview-size); aspect-ratio: 1; border: 1px solid var(--line); border-radius: var(--image-corner-radius, 0); background: var(--preview-paper); box-shadow: var(--shadow); }
-.preview-stage { border-radius: inherit; display: grid; place-items: center; width: 100%; aspect-ratio: 1; overflow: hidden; background-color: var(--checker-base); background-image: linear-gradient(45deg, var(--checker) 25%, transparent 25%), linear-gradient(-45deg, var(--checker) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--checker) 75%), linear-gradient(-45deg, transparent 75%, var(--checker) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; }
+.preview-card { width: var(--preview-size); aspect-ratio: 1; border-radius: var(--image-corner-radius, 0); box-shadow: var(--shadow); }
+.preview-stage { border-radius: inherit; display: grid; place-items: center; width: 100%; aspect-ratio: 1; }
+.preview-stage.is-transparent { overflow: hidden; background-color: var(--checker-base); background-image: linear-gradient(45deg, var(--checker) 25%, transparent 25%), linear-gradient(-45deg, var(--checker) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--checker) 75%), linear-gradient(-45deg, transparent 75%, var(--checker) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; }
 .preview-stage img { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity .2s; }
-.preview-placeholder { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px; color: var(--preview-ink); font-size: 12px; text-align: center; }
+.preview-placeholder { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px; color: var(--muted); font-size: 12px; text-align: center; }
 .preview-placeholder .icon { width: 60px; height: 60px; opacity: .3; }
 .preview-stage.is-loading img { opacity: .35; }
 .preview-zoom { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); box-shadow: var(--frame-shadow); }

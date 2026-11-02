@@ -69,19 +69,29 @@ async function main() {
     assert.equal(await page.locator('#image-shape').inputValue(), 'rounded');
     assert.deepEqual(await silhouette(), [0, 0, 0, 0, 255]);
 
-    // The checkerboard, border and shadow share the actual image silhouette in both themes.
+    // The preview adds no border or paper fringe around the image in either theme.
     let geometry;
     for (const theme of ['浅色', '深色']) {
       await choose('界面外观', theme);
       const measure = await page.locator('.preview-card').evaluate(card => {
         const stage = card.querySelector('.preview-stage');
         const image = card.querySelector('img');
-        return { radius: getComputedStyle(card).borderTopLeftRadius,
+        const style = getComputedStyle(card);
+        return { radius: style.borderTopLeftRadius,
           stageRadius: getComputedStyle(stage).borderTopLeftRadius,
+          border: style.borderTopWidth, background: style.backgroundColor,
+          stageBackground: getComputedStyle(stage).backgroundColor,
+          stagePattern: getComputedStyle(stage).backgroundImage,
+          cardWidth: card.getBoundingClientRect().width,
           width: image.getBoundingClientRect().width, height: image.getBoundingClientRect().height };
       });
       assert.ok(parseFloat(measure.radius) > 0);
       assert.equal(measure.radius, measure.stageRadius);
+      assert.equal(measure.border, '0px');
+      assert.equal(measure.background, 'rgba(0, 0, 0, 0)');
+      assert.equal(measure.stageBackground, 'rgba(0, 0, 0, 0)');
+      assert.equal(measure.stagePattern, 'none');
+      assert.equal(measure.cardWidth, measure.width);
       if (geometry) assert.deepEqual(measure, geometry, 'theme changes preserve image geometry');
       geometry = measure;
       assert.deepEqual(await silhouette(), [0, 0, 0, 0, 255]);
@@ -123,6 +133,14 @@ async function main() {
 
     await choose('边距', '0 个码点');
     assert.deepEqual(await silhouette(), [0, 0, 0, 0, 255]);
+    await page.getByRole('button', { name: /^背景颜色：/ }).click();
+    await page.getByRole('button', { name: '透明背景', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await ready();
+    assert.equal(await page.locator('.preview-stage').evaluate(stage => getComputedStyle(stage).backgroundImage !== 'none'), true);
+    await page.locator('#undo').click();
+    await ready();
+    assert.equal(await page.locator('.preview-stage').evaluate(stage => getComputedStyle(stage).backgroundImage), 'none');
     await choose('图片外角', '直角');
     assert.deepEqual(await silhouette(), [255, 255, 255, 255, 255]);
     assert.equal(await page.locator('.preview-card').evaluate(card => getComputedStyle(card).borderTopLeftRadius), '0%');
