@@ -140,7 +140,8 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .icon-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .icon-button:disabled { opacity: .4; }
 .preview-canvas { --preview-gutter: 72px; position: relative; display: grid; min-height: 0; min-width: 0; background-image: radial-gradient(var(--canvas-dot) .75px, transparent .75px); background-size: 16px 16px; }
-.preview-viewport { min-width: 0; min-height: 0; overflow: auto; container-type: size; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.preview-viewport { min-width: 0; min-height: 0; overflow: auto; container-type: size; overscroll-behavior: contain; scrollbar-width: none; }
+.preview-viewport::-webkit-scrollbar { display: none; }
 .preview-viewport:focus-visible { outline-offset: -3px; }
 .preview-surface { --preview-size: calc(min(100cqw, max(48px, 100cqh - 2 * var(--preview-gutter))) * var(--preview-zoom, 1)); display: grid; place-items: center; padding-block: var(--preview-gutter); width: max(100%, var(--preview-size)); height: max(100%, calc(var(--preview-size) + 2 * var(--preview-gutter))); }
 .preview-card { width: var(--preview-size); aspect-ratio: 1; border: 1px solid var(--line); background: var(--preview-paper); box-shadow: var(--shadow); }
