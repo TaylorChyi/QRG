@@ -128,4 +128,8 @@ Logo 支持 PNG、JPEG 等 Pillow 能读取的图片；`--logo-scale` 是 Logo �
 
 ## 应用图标
 
-`assets/icon.svg` 是可编辑的图标原稿，`assets/icon.png` 是 1024 × 1024 PNG，`assets/icon.icns` 用于 macOS 应用。需要重新生成图标时，先安装依赖，再在 macOS 上运行 `.venv/bin/python scripts/build_icon.py`。生成 `.icns` 还需 macOS 自带的 `iconutil`。启动图形界面时，`script/run-gui` 将 `.icns` 放入本地构建的应用包。
+图标沿用「三个方形＋一个圆形」结构，圆角外轮廓就是整个应用图标的边缘。`assets/QRG.icon` 为白底黑色标记，`assets/QRG-Black.icon` 为黑底白色标记，均可直接用 Apple Icon Composer 编辑；玻璃边缘、折射和光照由 Icon Composer 渲染。
+
+`assets/icon.png`、`assets/icon-dark.png` 是两款 1024 × 1024 PNG；对应的 `.icns` 由 Apple `actool` 编译。`assets/icon.svg` 是无玻璃特效的平面矢量配套。Web 和 macOS 应用默认使用白色款，黑色款作为独立备选，不会自动随系统切换。
+
+重新导出需完整 Xcode、Icon Composer 27 或更高版本，以及项目的 Pillow 依赖，在 macOS 上运行 `.venv/bin/python scripts/build_icon.py`。脚本默认使用当前 `xcode-select` 所选 Xcode 内的 Icon Composer；也可通过 `ICON_COMPOSER_ICTOOL` 指向其他版本的 `Icon Composer.app/Contents/Executables/ictool`。启动图形界面时，`script/run-gui` 将 `assets/icon.icns` 放入本地构建的应用包。

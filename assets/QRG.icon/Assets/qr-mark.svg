@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>QRG — three squares and one circle</title>
+  <g fill="#202020">
+    <rect x="176" y="176" width="280" height="280" rx="32"/>
+    <rect x="568" y="176" width="280" height="280" rx="32"/>
+    <rect x="176" y="568" width="280" height="280" rx="32"/>
+    <circle cx="708" cy="708" r="140"/>
+  </g>
+</svg>

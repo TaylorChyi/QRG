@@ -1,0 +1,35 @@
+{
+  "fill": {
+    "solid": "extended-srgb:0.02500,0.02500,0.02500,1.00000"
+  },
+  "features": [
+    "refractivity"
+  ],
+  "groups": [
+    {
+      "name": "Three Squares + Circle",
+      "layers": [
+        {
+          "name": "QR Mark",
+          "image-name": "qr-mark.svg"
+        }
+      ],
+      "refractivity": {
+        "enabled": true,
+        "depth": 0.01,
+        "strength": 0.2
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.1
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.12
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}
