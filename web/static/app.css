@@ -73,8 +73,7 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .field textarea:focus, .field select:focus, .field input[type="number"]:focus { outline: 0; border-color: var(--focus); box-shadow: 0 0 0 3px var(--soft-accent); }
 .field-note { color: var(--faint); font-size: 10px; line-height: 1.6; }
 .field input[aria-invalid="true"] { border-color: var(--error); }
-.field-section { min-width: 0; padding: 0 0 22px; margin: 0 0 22px; border: 0; border-bottom: 1px solid var(--soft-line); }
-.content-field { margin-bottom: 24px; }
+.field-section, .content-field { min-width: 0; padding: 0 0 22px; margin: 0 0 22px; border: 0; border-bottom: 1px solid var(--soft-line); }
 .section-heading { margin: 0 0 8px; font-size: 13px; font-weight: 550; }
 .colour-field { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--raised); }
 .colour-field input { width: 29px; height: 29px; flex: none; padding: 0; border: 0; border-radius: 4px; background: transparent; }
@@ -188,9 +187,8 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
   .topbar { height: 52px; }
   #editor-form { padding-top: 16px; padding-bottom: 16px; }
   .field { gap: 5px; }
-  .content-field { margin-bottom: 14px; }
   textarea { height: 64px; padding-top: 9px; padding-bottom: 9px; }
-  .field-section { margin-bottom: 12px; padding-bottom: 12px; }
+  .field-section, .content-field { margin-bottom: 12px; padding-bottom: 12px; }
   .small-button { min-height: 36px; }
   .preview-toolbar { min-height: 44px; padding-top: 7px; padding-bottom: 7px; }
   .preview-canvas { padding-top: 8px; padding-bottom: 12px; }
