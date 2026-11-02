@@ -46,7 +46,6 @@ class QRSettings:
     error_correction: str = 'M'
     version: int | None = None
     size: int = 1024
-    crisp: bool = False
     logo: Image.Image | None = None
     logo_scale: float = .20
     logo_padding_px: int | None = None
@@ -133,7 +132,7 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
              f'<rect width="{total}" height="{total}" fill="{bg}" fill-opacity="{ba}"/>']
     # Use equal whole-pixel cells when a quiet zone can absorb the remainder.
     # A borderless PNG must fill its canvas instead of adding an implicit margin.
-    supersample = 1 if args.crisp else max(1, min(4, 4096 // args.size))
+    supersample = max(1, min(4, 4096 // args.size))
     image = Image.new('RGBA', (args.size * supersample, args.size * supersample), args.background) if output_format == 'png' else None
     draw = ImageDraw.Draw(image) if image is not None else None
     borderless_png = args.margin == 0 and image is not None
@@ -233,7 +232,6 @@ def main():
     p.add_argument('--error-correction', choices=['L','M','Q','H'], type=str.upper, default='M', help='容错等级 L/M/Q/H（默认 M）')
     p.add_argument('--version', type=int, choices=range(1, 41), help='二维码版本 1–40，边长为 17 + 4 × 版本；默认自动选择')
     p.add_argument('--size', type=int, default=1024, help='输出宽高像素（默认 1024）')
-    p.add_argument('--crisp', action='store_true', help='码点按原生像素绘制，不对边缘做抗锯齿')
     p.add_argument('--verify', action='store_true', help='用 macOS Vision 校验生成的 PNG 可解码且内容一致')
     p.add_argument('--logo', type=Path, help='中心 Logo 图片路径（PNG、JPEG 等 Pillow 支持的格式）')
     p.add_argument('--logo-padding-px', type=positive, help='Logo 最小留白，单位为输出像素；实际边界按完整码点向外取整')

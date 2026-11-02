@@ -105,9 +105,6 @@ def settings_from_json(data):
             raise ValueError(str(exc)) from None
     if colours['color'][3] == 0:
         raise ValueError('码颜色不能完全透明')
-    crisp = data.get('crisp', False)
-    if type(crisp) is not bool:
-        raise ValueError('crisp 必须为布尔值')
     logo_scale = data.get('logo_scale', .19)
     if type(logo_scale) not in (int, float) or not 0 < logo_scale <= .25:
         raise ValueError('Logo 比例必须大于 0 且不超过 0.25')
@@ -120,7 +117,7 @@ def settings_from_json(data):
         error_correction=choice(data, 'error_correction', 'H', ('L', 'M', 'Q', 'H')),
         version=integer(data, 'version', None, 1, 40, nullable=True),
         size=integer(data, 'size', 1024, 64, 4096),
-        crisp=crisp, logo=logo, logo_scale=logo_scale,
+        logo=logo, logo_scale=logo_scale,
         logo_modules=integer(data, 'logo_modules', None, 1, 44, nullable=True),
         logo_padding_px=integer(data, 'logo_padding_px', None, 0, 128, nullable=True),
         logo_padding_modules=integer(data, 'logo_padding_modules', None, 0, 8, nullable=True),

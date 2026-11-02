@@ -5,7 +5,7 @@
   const controls = {
     content: $('content'), color: $('color'), background: $('background'), transparent: $('transparent'),
     module_shape: $('module-shape'), eye_shape: $('eye-shape'), margin: $('margin'),
-    error_correction: $('error-correction'), version: $('version'), size: $('size'), crisp: $('crisp'),
+    error_correction: $('error-correction'), version: $('version'), size: $('size'),
     logo_modules: $('logo-modules'), logo_padding_modules: $('logo-padding-modules'),
   };
   const preview = $('preview-image');
@@ -21,7 +21,7 @@
   const initial = {
     content: 'https://example.com', color: '#000000', background: '#ffffff', transparent: false,
     module_shape: 'tile', eye_shape: 'rounded', margin: 4, error_correction: 'H', version: null,
-    size: 1024, crisp: false, logo: null, logo_name: '', logo_crop: null, logo_modules: 5, logo_padding_modules: 1,
+    size: 1024, logo: null, logo_name: '', logo_crop: null, logo_modules: 5, logo_padding_modules: 1,
   };
 
   let settings = { ...initial };
@@ -89,7 +89,6 @@
     controls.error_correction.value = settings.error_correction;
     controls.version.value = settings.version === null ? 'auto' : String(settings.version);
     controls.size.value = String(settings.size);
-    controls.crisp.checked = settings.crisp;
     syncOptions(controls.logo_modules, Object.keys(logoOptions || {}).map(Number), settings.logo_modules, value => `${value} × ${value} 格`);
     syncOptions(controls.logo_padding_modules, logoOptions?.[settings.logo_modules] || [0, 1, 2], settings.logo_padding_modules, String);
     const logoUnavailable = !settings.logo || logoOptions !== null && Object.keys(logoOptions).length === 0;
@@ -188,7 +187,7 @@
       background: settings.transparent ? 'transparent' : settings.background,
       module_shape: settings.module_shape, eye_shape: settings.eye_shape,
       margin: settings.margin, error_correction: settings.error_correction,
-      version: settings.version, size: settings.size, crisp: settings.crisp,
+      version: settings.version, size: settings.size,
       logo: settings.logo, logo_modules: settings.logo_modules,
       logo_crop: settings.logo_crop, logo_padding_modules: settings.logo_padding_modules, format,
     };

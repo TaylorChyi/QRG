@@ -61,7 +61,6 @@ struct ContentView: View {
                                 TextField("像素", value: editor.binding(\.size, coalescing: true), format: .number.grouping(.never)).frame(width: 75)
                                 Text("px").foregroundStyle(.secondary)
                             }
-                            Toggle("锐利像素边缘", isOn: editor.binding(\.crisp))
                         }.padding(4)
                     }
                     GroupBox("中心 Logo") {

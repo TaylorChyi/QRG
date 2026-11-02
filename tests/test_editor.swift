@@ -118,17 +118,16 @@ struct EditorTests {
         history.update(\.logo, to: root.appendingPathComponent("logo.png"))
         history.update(\.logoScale, to: 0.15)
         history.update(\.logoPadding, to: 4)
-        history.update(\.crisp, to: true)
         let modified = history.settings
-        for _ in 0..<14 { history.undo() }
+        for _ in 0..<13 { history.undo() }
         check(history.settings == initial && !history.canUndo && history.canRedo, "Undo must restore every setting")
-        for _ in 0..<14 { history.redo() }
+        for _ in 0..<13 { history.redo() }
         check(history.settings == modified && history.canUndo && !history.canRedo, "Redo must restore every setting")
         history.undo()
         history.update(\.margin, to: 8)
         check(!history.canRedo, "A new edit must clear the redo branch")
         history.redo()
-        check(history.settings.margin == 8 && !history.settings.crisp, "Redo must not resurrect discarded edits")
+        check(history.settings.margin == 8 && history.settings.logoPadding == 1, "Redo must not resurrect discarded edits")
         print("PASS: automatic preview, latest edit races, export consistency, failure recovery, complete undo/redo and branching")
     }
 }

@@ -15,13 +15,11 @@ struct QRSettings: Equatable {
     var logo: URL?
     var logoScale = 0.19
     var logoPadding = 1
-    var crisp = false
 
     var arguments: [String] {
         var args = [content, "--color", hex(foreground), "--background", transparent ? "transparent" : hex(background), "--module-shape", shape, "--eye-shape", eyes, "--margin", String(margin), "--error-correction", level, "--size", String(size)]
         if version > 0 { args += ["--version", String(version)] }
         if let logo { args += ["--logo", logo.path, "--logo-scale", String(logoScale), "--logo-padding-px", String(logoPadding)] }
-        if crisp { args += ["--crisp"] }
         return args
     }
 

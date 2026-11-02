@@ -228,7 +228,7 @@ class WebTests(unittest.TestCase):
             {'size': 4097}, {'size': 63}, {'size': True}, {'size': 400.5}, {'margin': -1},
             {'version': 0}, {'version': []}, {'color': 'transparent'}, {'color': []},
             {'background': 'not-a-colour'}, {'module_shape': 'bad'}, {'eye_shape': {}},
-            {'format': 'pdf'}, {'error_correction': 'X'}, {'crisp': 'false'},
+            {'format': 'pdf'}, {'error_correction': 'X'},
             {'logo_scale': 0}, {'logo_scale': .26}, {'logo_scale': 10 ** 400},
             {'logo_scale': float('nan')}, {'logo_scale': float('inf')}, {'logo_scale': True},
             {'logo_padding_px': 129}, {'logo_padding_px': '1'},

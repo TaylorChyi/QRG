@@ -137,7 +137,6 @@ async function main() {
     assert.equal(await page.locator('#editor-form .qrg-stepper').count(), 0);
     assert.equal(await page.locator('.export-panel #size').count(), 1);
     assert.equal(await page.locator('.export-panel #margin').count(), 1);
-    assert.equal(await page.locator('.export-panel #crisp').count(), 1);
     await sizeSelect.click();
     assert.deepEqual(await page.getByRole('option').allTextContents(), ['256', '512', '1024', '2048', '4096']);
     await page.getByRole('option', { name: '512', exact: true }).click();
