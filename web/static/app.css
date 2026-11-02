@@ -149,11 +149,11 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .preview-zoom .icon { width: 16px; height: 16px; }
 .preview-zoom #zoom-reset { width: 64px; color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
 .preview-zoom output { pointer-events: none; }
-.export-panel { padding: 24px 32px; border-top: 1px solid var(--line); background: var(--surface); }
+.export-panel { --export-gap: 12px; padding: 24px 32px; border-top: 1px solid var(--line); background: var(--surface); }
 .preview-error { overflow-wrap: anywhere; margin: 0 0 10px; color: var(--error); font-size: 11px; line-height: 1.7; text-align: center; }
-.export-settings { max-width: 520px; margin: auto; }
+.export-settings.field-grid { gap: var(--export-gap); max-width: 520px; margin: 0 auto var(--export-gap); }
 .export-panel .check-row { max-width: 520px; margin: 12px auto 18px; }
-.download-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 520px; margin: auto; }
+.download-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--export-gap); max-width: 520px; margin: auto; }
 .download-actions button { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 7px; font-size: 14px; font-weight: 550; transition: background .15s, border-color .15s, transform .15s; }
 .download-actions .icon { width: 17px; height: 17px; }
 .download-actions .primary-button { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -217,11 +217,10 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
   .preview-viewport { --preview-max-size: 100cqw; }
   .preview-zoom { padding: 3px; }
   .preview-zoom button { width: 28px; height: 28px; }
-  .export-panel { padding: 8px 12px; }
+  .export-panel { --export-gap: 6px; padding: 8px 12px; }
   .export-panel .check-row { margin: 4px auto 6px; }
   .export-settings .field { gap: 3px; }
   .export-settings .qrg-select-trigger { min-height: 34px; padding-top: 5px; padding-bottom: 5px; }
-  .download-actions { gap: 6px; }
   .download-actions button { min-height: 36px; gap: 5px; padding: 6px 5px; font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) {
