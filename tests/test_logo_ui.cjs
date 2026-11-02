@@ -86,8 +86,9 @@ async function syntheticIcon(page) {
   return { name: 'two-colour-icon.png', mimeType: 'image/png', buffer: Buffer.from(base64, 'base64') };
 }
 
-async function setCrop(page, { x, y, width, height }) {
-  for (const [field, value] of Object.entries({ width, height, x, y })) {
+async function setCrop(page, { top = 0, bottom = 0, left = 0, right = 0 }) {
+  await page.locator('#reset-logo-crop').click();
+  for (const [field, value] of Object.entries({ top, bottom, left, right })) {
     await page.locator(`#crop-${field}`).fill(String(value));
   }
 }
@@ -98,7 +99,7 @@ async function chooseSetting(page, selector, value) {
 
 async function cropFields(page) {
   const result = {};
-  for (const field of ['x', 'y', 'width', 'height']) result[field] = Number(await page.locator(`#crop-${field}`).inputValue());
+  for (const field of ['top', 'bottom', 'left', 'right']) result[field] = Number(await page.locator(`#crop-${field}`).inputValue());
   return result;
 }
 
@@ -137,8 +138,16 @@ async function main() {
 
     await page.locator('#logo-file').setInputFiles(icon);
     await page.locator('#logo-crop-dialog').waitFor({ state: 'visible' });
-    await setCrop(page, { x: 16, y: 0, width: 16, height: 16 });
-    assert.deepEqual(await cropFields(page), { x: 16, y: 0, width: 16, height: 16 });
+    assert.deepEqual(await cropFields(page), { top: 0, bottom: 0, left: 0, right: 0 });
+    await setCrop(page, { top: 2, bottom: 3, left: 4, right: 5 });
+    await page.locator('#apply-logo-crop').click();
+    await ready(page);
+    assert.deepEqual((await latestPayload(requests)).logo_crop, { x: 4, y: 2, width: 23, height: 11 },
+      'four crop insets must map to the selected source rectangle');
+    await page.locator('#edit-logo-crop').click();
+    assert.deepEqual(await cropFields(page), { top: 2, bottom: 3, left: 4, right: 5 }, 're-edit lost edge insets');
+    await setCrop(page, { left: 16 });
+    assert.deepEqual(await cropFields(page), { top: 0, bottom: 0, left: 16, right: 0 });
     await page.locator('#apply-logo-crop').click();
     await ready(page);
     const applied = await latestPayload(requests);
@@ -182,13 +191,18 @@ async function main() {
 
     await page.locator('#edit-logo-crop').click();
     await page.locator('#logo-crop-dialog').waitFor({ state: 'visible' });
-    assert.deepEqual(await cropFields(page), { x: 16, y: 0, width: 16, height: 16 }, 're-edit lost crop');
+    assert.deepEqual(await cropFields(page), { top: 0, bottom: 0, left: 16, right: 0 }, 're-edit lost crop');
     const beforeCancel = await previewHash(page);
-    await page.locator('#crop-width').fill('0');
-    assert.equal(await page.locator('#crop-width').getAttribute('aria-invalid'), 'true');
-    assert.equal(await page.locator('#apply-logo-crop').isDisabled(), true);
-    await page.locator('#crop-width').blur();
-    assert.equal(await page.locator('#apply-logo-crop').isDisabled(), false);
+    for (const [edge, value] of [['top', '16'], ['bottom', '16'], ['left', '32'], ['right', '16'],
+      ['top', '-1'], ['bottom', '1.5'], ['left', '']]) {
+      const field = page.locator(`#crop-${edge}`);
+      await field.fill(value);
+      assert.equal(await field.getAttribute('aria-invalid'), 'true', `${edge}: accepted invalid inset ${value}`);
+      assert.equal(await page.locator('#apply-logo-crop').isDisabled(), true);
+      await field.blur();
+      assert.equal(await page.locator('#apply-logo-crop').isDisabled(), false);
+      assert.deepEqual(await cropFields(page), { top: 0, bottom: 0, left: 16, right: 0 }, 'invalid edit changed crop');
+    }
 
     const canvas = page.locator('#logo-crop-canvas');
     const box = await canvas.boundingBox();
@@ -199,24 +213,25 @@ async function main() {
     await page.mouse.move(end.x, end.y, { steps: 6 });
     await page.mouse.up();
     const drawn = await cropFields(page);
-    assert.ok(drawn.x < 16 && drawn.width < 16 && drawn.height < 16,
+    assert.ok(drawn.left < 16 && drawn.left + drawn.right > 16 && drawn.top + drawn.bottom > 0,
       `pointer drag did not draw a new crop: ${JSON.stringify(drawn)}`);
-    const corner = point((drawn.x + drawn.width) / 32, (drawn.y + drawn.height) / 16);
+    const corner = point(1 - drawn.right / 32, 1 - drawn.bottom / 16);
     await page.mouse.move(corner.x, corner.y);
     await page.mouse.down();
     await page.mouse.move(corner.x + box.width / 16, corner.y, { steps: 4 });
     await page.mouse.up();
     const resized = await cropFields(page);
-    assert.ok(resized.width > drawn.width, `pointer corner did not resize crop: ${JSON.stringify(resized)}`);
+    assert.ok(resized.right < drawn.right && resized.left === drawn.left, `pointer corner did not resize crop: ${JSON.stringify(resized)}`);
     await canvas.focus();
     await page.keyboard.press('ArrowRight');
-    assert.equal((await cropFields(page)).x, resized.x + 1, 'keyboard arrow did not move crop');
-    await setCrop(page, { x: 0, y: 0, width: 16, height: 16 });
+    assert.deepEqual(await cropFields(page), { ...resized, left: resized.left + 1, right: resized.right - 1 },
+      'keyboard movement must update both opposing insets');
+    await setCrop(page, { right: 16 });
     await page.locator('#cancel-logo-crop').click();
     assert.equal(await previewHash(page), beforeCancel, 'cancelled re-edit changed preview');
     await page.locator('#edit-logo-crop').click();
-    assert.deepEqual(await cropFields(page), { x: 16, y: 0, width: 16, height: 16 });
-    await setCrop(page, { x: 0, y: 0, width: 16, height: 16 });
+    assert.deepEqual(await cropFields(page), { top: 0, bottom: 0, left: 16, right: 0 });
+    await setCrop(page, { right: 16 });
     await page.locator('#apply-logo-crop').click();
     await ready(page);
     assert.deepEqual((await latestPayload(requests)).logo_crop, { x: 0, y: 0, width: 16, height: 16 });
@@ -229,6 +244,7 @@ async function main() {
 
     await page.locator('#edit-logo-crop').click();
     await page.locator('#reset-logo-crop').click();
+    assert.deepEqual(await cropFields(page), { top: 0, bottom: 0, left: 0, right: 0 }, 'whole image must clear all four insets');
     await page.locator('#apply-logo-crop').click();
     await ready(page);
     const reset = await latestPayload(requests);

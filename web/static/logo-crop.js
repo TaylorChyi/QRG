@@ -6,7 +6,7 @@
   const canvas = $('logo-crop-canvas');
   const context = canvas.getContext('2d');
   const apply = $('apply-logo-crop');
-  const fields = Object.fromEntries(['x', 'y', 'width', 'height'].map(key => [key, $(`crop-${key}`)]));
+  const fields = Object.fromEntries(['top', 'bottom', 'left', 'right'].map(key => [key, $(`crop-${key}`)]));
   let draft = null;
   let drag = null;
   let token = 0;
@@ -38,18 +38,25 @@
     }
   }
 
+  function cropInsets() {
+    const { image, crop } = draft;
+    return { top: crop.y, bottom: image.naturalHeight - crop.y - crop.height,
+      left: crop.x, right: image.naturalWidth - crop.x - crop.width };
+  }
+
   function sync() {
     if (!draft) return;
     const { image, crop } = draft;
-    const bounds = { x: image.naturalWidth - 1, y: image.naturalHeight - 1,
-      width: image.naturalWidth - crop.x, height: image.naturalHeight - crop.y };
+    const insets = cropInsets();
+    const bounds = { top: image.naturalHeight - insets.bottom - 1, bottom: image.naturalHeight - insets.top - 1,
+      left: image.naturalWidth - insets.right - 1, right: image.naturalWidth - insets.left - 1 };
     for (const [key, field] of Object.entries(fields)) {
-      field.value = String(crop[key]);
+      field.value = String(insets[key]);
       field.max = String(bounds[key]);
       field.setAttribute('aria-invalid', 'false');
     }
     apply.disabled = false;
-    $('crop-selection-size').textContent = `所选范围：${crop.width} × ${crop.height} 像素 · 原图 ${image.naturalWidth} × ${image.naturalHeight} 像素`;
+    $('crop-selection-size').textContent = `选区 ${crop.width} × ${crop.height} 像素`;
     window.QRGControls?.sync();
     paint();
   }
@@ -93,9 +100,10 @@
         apply.disabled = true;
         return;
       }
-      draft.crop[key] = value;
-      draft.crop.width = Math.min(draft.crop.width, draft.image.naturalWidth - draft.crop.x);
-      draft.crop.height = Math.min(draft.crop.height, draft.image.naturalHeight - draft.crop.y);
+      const insets = { ...cropInsets(), [key]: value };
+      draft.crop = { x: insets.left, y: insets.top,
+        width: draft.image.naturalWidth - insets.left - insets.right,
+        height: draft.image.naturalHeight - insets.top - insets.bottom };
       sync();
     });
     field.addEventListener('blur', () => {

@@ -103,11 +103,12 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .logo-options :disabled { opacity: .5; }
 .logo-crop-dialog { width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 22px; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 .logo-crop-dialog::backdrop { background: var(--crop-scrim); }
-.crop-heading h2 { margin: 0 0 4px; font-size: 18px; }
-.crop-heading p { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+.crop-heading { margin: 0 0 16px; font-size: 18px; }
 .crop-workspace { display: flex; justify-content: center; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background-color: var(--checker-base); background-image: conic-gradient(var(--checker) 25%, transparent 0 50%, var(--checker) 0 75%, transparent 0); background-size: 16px 16px; }
 #logo-crop-canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: min(40dvh, 340px); touch-action: none; cursor: crosshair; }
-.crop-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.crop-controls { min-width: 0; margin: 14px 0 0; padding: 0; border: 0; }
+.crop-controls legend { margin-bottom: 8px; padding: 0; color: var(--muted); font-size: 11px; }
+.crop-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .crop-fields .field { gap: 5px; }
 .crop-fields input { min-width: 0; }
 .crop-fields input[aria-invalid="true"] { border-color: var(--error); }
@@ -119,8 +120,6 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 @media (max-width: 480px) {
   .logo-crop-dialog { padding: 16px; }
   .crop-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .crop-actions { align-items: stretch; flex-direction: column; }
-  .crop-actions > div { justify-content: flex-end; }
 }
 @media (max-width: 480px) and (max-height: 700px) {
   #logo-crop-canvas { max-height: max(80px, calc(100dvh - 450px)); }

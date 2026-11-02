@@ -98,17 +98,22 @@
     </main>
   </div>
   <dialog id="logo-crop-dialog" class="logo-crop-dialog" aria-labelledby="logo-crop-title" aria-describedby="logo-crop-note">
-    <div class="crop-heading"><h2 id="logo-crop-title">选择 Logo 生效范围</h2><p id="logo-crop-note">拖动框选需要的部分；框内可移动，四角可调整大小。</p></div>
+    <h2 id="logo-crop-title" class="crop-heading">裁剪 Logo</h2>
+    <p id="logo-crop-note" class="visually-hidden">拖动框选，框内移动，四角缩放。</p>
     <div class="crop-workspace"><canvas id="logo-crop-canvas" tabindex="0" aria-label="Logo 裁剪范围" aria-describedby="crop-keyboard-note"></canvas></div>
-    <p id="crop-keyboard-note" class="field-note">方向键移动选区，按住 Shift 每次移动 10 像素；也可输入精确范围。</p>
-    <div class="crop-fields">
-      <div class="field"><label for="crop-x">左边（像素）</label><input id="crop-x" type="number" min="0" step="1" inputmode="numeric"></div>
-      <div class="field"><label for="crop-y">上边（像素）</label><input id="crop-y" type="number" min="0" step="1" inputmode="numeric"></div>
-      <div class="field"><label for="crop-width">宽度（像素）</label><input id="crop-width" type="number" min="1" step="1" inputmode="numeric"></div>
-      <div class="field"><label for="crop-height">高度（像素）</label><input id="crop-height" type="number" min="1" step="1" inputmode="numeric"></div>
-    </div>
-    <p id="crop-selection-size" class="field-note" role="status" aria-live="polite"></p>
-    <div class="crop-actions"><button type="button" class="text-button" id="reset-logo-crop">使用整张图片</button><div><button type="button" class="small-button" id="cancel-logo-crop">取消</button><button type="button" class="small-button crop-apply" id="apply-logo-crop">使用所选范围</button></div></div>
+    <p id="crop-keyboard-note" class="visually-hidden">方向键移动选区，Shift 加方向键每次移动 10 像素。</p>
+    <fieldset class="crop-controls" aria-describedby="crop-edge-note">
+      <legend>裁去（像素）</legend>
+      <p id="crop-edge-note" class="visually-hidden">输入各边裁去的像素数，0 表示保留该边。</p>
+      <div class="crop-fields">
+        <div class="field"><label for="crop-top">上</label><input id="crop-top" type="number" min="0" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="crop-bottom">下</label><input id="crop-bottom" type="number" min="0" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="crop-left">左</label><input id="crop-left" type="number" min="0" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="crop-right">右</label><input id="crop-right" type="number" min="0" step="1" inputmode="numeric"></div>
+      </div>
+    </fieldset>
+    <p id="crop-selection-size" class="visually-hidden" role="status" aria-live="polite"></p>
+    <div class="crop-actions"><button type="button" class="text-button" id="reset-logo-crop">整张</button><div><button type="button" class="small-button" id="cancel-logo-crop">取消</button><button type="button" class="small-button crop-apply" id="apply-logo-crop">确定</button></div></div>
   </dialog>
 </body>
 </html>
