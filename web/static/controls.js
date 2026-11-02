@@ -57,6 +57,49 @@
     });
   }
 
+  function shapePreview(select, value) {
+    if (!['module-shape', 'eye-shape'].includes(select.id)) return null;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('qrg-shape-preview');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    if (select.id === 'module-shape') {
+      svg.setAttribute('viewBox', '0 0 2.4 2.4');
+      const inset = value === 'tile' ? 0.12 : 0;
+      const radius = { square: 0, tile: 0.16, circle: 0.5 }[value];
+      for (const y of [0, 1.4]) {
+        for (const x of [0, 1.4]) {
+          const dot = document.createElementNS(svg.namespaceURI, 'rect');
+          for (const [name, number] of Object.entries({ x: x + inset, y: y + inset, width: 1 - 2 * inset, height: 1 - 2 * inset, rx: radius })) {
+            dot.setAttribute(name, number);
+          }
+          svg.append(dot);
+        }
+      }
+    } else {
+      svg.setAttribute('viewBox', '0 0 7 7');
+      const ring = document.createElementNS(svg.namespaceURI, 'path');
+      ring.setAttribute('fill-rule', 'evenodd');
+      ring.setAttribute('d', value === 'rounded'
+        ? 'M1.5 0H5.5A1.5 1.5 0 0 1 7 1.5V5.5A1.5 1.5 0 0 1 5.5 7H1.5A1.5 1.5 0 0 1 0 5.5V1.5A1.5 1.5 0 0 1 1.5 0Z M1.8 1H5.2A.8 .8 0 0 1 6 1.8V5.2A.8 .8 0 0 1 5.2 6H1.8A.8 .8 0 0 1 1 5.2V1.8A.8 .8 0 0 1 1.8 1Z'
+        : 'M0 0H7V7H0Z M1 1H6V6H1Z');
+      const centre = document.createElementNS(svg.namespaceURI, 'rect');
+      for (const [name, number] of Object.entries({ x: 2, y: 2, width: 3, height: 3, rx: value === 'rounded' ? 0.6 : 0 })) {
+        centre.setAttribute(name, number);
+      }
+      svg.append(ring, centre);
+    }
+    return svg;
+  }
+
+  function selectContent(container, select, option) {
+    const text = document.createElement('span');
+    text.className = 'qrg-select-text';
+    text.textContent = option?.textContent || '';
+    const preview = shapePreview(select, option?.value);
+    container.replaceChildren(...(preview ? [preview, text] : [text]));
+  }
+
   function enhanceSelect(select) {
     const wrapper = document.createElement('span');
     wrapper.className = 'qrg-select';
@@ -79,7 +122,7 @@
     select.tabIndex = -1;
     select.setAttribute('aria-hidden', 'true');
     const sync = () => {
-      caption.textContent = select.selectedOptions[0]?.textContent || '';
+      selectContent(caption, select, select.selectedOptions[0]);
       trigger.setAttribute('aria-label', `${labelText(select)}：${caption.textContent}`);
       trigger.disabled = select.disabled;
     };
@@ -115,7 +158,7 @@
         item.setAttribute('role', 'option');
         item.tabIndex = -1;
         item.setAttribute('aria-selected', String(index === select.selectedIndex));
-        item.textContent = option.textContent;
+        selectContent(item, select, option);
         item.disabled = option.disabled;
         item.addEventListener('pointerenter', () => { activeIndex = index; updateActive(panel); });
         item.addEventListener('click', () => choose(index));
