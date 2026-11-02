@@ -16,6 +16,8 @@
 
 Web 界面直接排列链接、颜色、形状、Logo 和二维码规格，提供自动预览、撤销/重做，以及 PNG/SVG 下载。Logo 上传入口合并为紧凑的一行，选图后显示大小与留白设置。桌面并排编辑与预览，较小窗口可滚动左侧设置；手机竖屏可切换「编辑二维码／预览与导出」。导出尺寸和边距位于预览下方、导出按钮上方。下拉菜单、颜色面板（色板、RGB、十六进制）、开关和按钮均使用统一的定制样式，支持浅色、深色和跟随系统。PNG 下载使用当前预览对应的图片；修改设置后须等待新预览成功才能导出。
 
+预览下方的胶囊控件提供 25%–200% 缩放，减号和加号每次调整 25%，点击百分比可回到 100%。放大后可在画布内滚动查看，导出尺寸和内容保持不变。
+
 上传 Logo 后可框选实际使用的范围，拖动选区、调整四角或输入上、下、左、右各边裁去的像素数，并在确认后应用到预览及 PNG/SVG 导出。「整张」可恢复完整图片；「调整范围」可重新编辑原图，裁剪也支持撤销/重做。Logo 大小按完整网格选择，例如「5 × 5 格」，图片等比放入所选范围；周围留白按码点提供 0、1、2 档，每档直接对应实际清除的完整码点，0 表示只清除 Logo 槽。大小和留白选项根据当前二维码版本及定位结构调整，隐藏无法放置的组合；缩小二维码后会收敛到可用范围。偶数边长的 Logo 槽会偏离几何中心半格，避免额外清除一行或一列。二维码版本提供自动、1、3、5、10；自动选择仍支持完整版本范围。
 
 链接和 Logo 会发送到当前 QRG 服务器，应用不会将这些内容写入文件、数据库或浏览器持久存储，也不会在应用日志中记录请求正文。反向代理或托管环境的日志策略由部署者管理。Web 版不执行 macOS Vision 自动解码，请用目标设备扫码确认。
@@ -59,6 +61,7 @@ Web 接口测试在 macOS、Linux 均可运行；其中 macOS Vision 的真实�
 npm install --prefix build/browser-qa --no-package-lock --no-save playwright-core@1.64.1
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_web_ui.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_logo_ui.cjs
+QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_preview_zoom.cjs
 ```
 
 默认访问 `http://127.0.0.1:8000`，并使用 macOS 的 Google Chrome；其它地址或浏览器路径通过 `BASE_URL`、`BROWSER_EXECUTABLE_PATH` 指定。

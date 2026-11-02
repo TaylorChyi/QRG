@@ -16,6 +16,10 @@
   const svgButton = $('download-svg');
   const undoButton = $('undo');
   const redoButton = $('redo');
+  const zoomOut = $('zoom-out');
+  const zoomIn = $('zoom-in');
+  const zoomReset = $('zoom-reset');
+  const previewViewport = $('preview-viewport');
   const logoFile = $('logo-file');
   const numericSettings = new Set(['margin', 'size', 'logo_modules', 'logo_padding_modules']);
   const initial = {
@@ -40,6 +44,22 @@
   let displayedCrop = null;
   let logoReadToken = 0;
   let logoOptions = null;
+  let previewZoom = 100;
+
+  function centrePreview() {
+    previewViewport.scrollTo({
+      left: (previewViewport.scrollWidth - previewViewport.clientWidth) / 2,
+      top: (previewViewport.scrollHeight - previewViewport.clientHeight) / 2,
+    });
+  }
+
+  function setPreviewZoom(value) {
+    previewZoom = Math.max(25, Math.min(200, value));
+    previewViewport.style.setProperty('--preview-zoom', previewZoom / 100);
+    $('zoom-value').value = `${previewZoom}%`;
+    refreshButtons();
+    centrePreview();
+  }
 
   function adoptLogoOptions(options) {
     if (!options || typeof options !== 'object' || Array.isArray(options)) return false;
@@ -76,6 +96,9 @@
     const canExport = readyBlob !== null && readyRevision === revision && !busyExport;
     pngButton.disabled = !canExport;
     svgButton.disabled = !canExport;
+    zoomOut.disabled = preview.hidden || previewZoom === 25;
+    zoomIn.disabled = preview.hidden || previewZoom === 200;
+    zoomReset.disabled = preview.hidden;
   }
 
   function syncControls() {
@@ -145,6 +168,7 @@
       preview.hidden = true;
       placeholder.hidden = false;
       placeholder.lastElementChild.textContent = '输入链接后自动生成';
+      refreshButtons();
       announce();
       return;
     }
@@ -343,6 +367,10 @@
   });
   undoButton.addEventListener('click', () => travel(past, future));
   redoButton.addEventListener('click', () => travel(future, past));
+  zoomOut.addEventListener('click', () => setPreviewZoom(previewZoom - 25));
+  zoomIn.addEventListener('click', () => setPreviewZoom(previewZoom + 25));
+  zoomReset.addEventListener('click', () => setPreviewZoom(100));
+  window.addEventListener('resize', centrePreview);
   $('editor-form').addEventListener('submit', (event) => event.preventDefault());
   pngButton.addEventListener('click', () => {
     if (!pngButton.disabled && readyBlob && readyRevision === revision) {
@@ -362,6 +390,7 @@
     button.addEventListener('click', () => {
       document.querySelector('.workspace').dataset.view = button.dataset.view;
       for (const item of viewButtons) item.setAttribute('aria-pressed', String(item === button));
+      if (button.dataset.view === 'preview') centrePreview();
     });
   }
 

@@ -7,6 +7,8 @@
   {% elif name == 'download' %}<path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5"/>
   {% elif name == 'undo' %}<path d="M9 5 4 10l5 5M4 10h10a6 6 0 0 1 6 6v3"/>
   {% elif name == 'redo' %}<path d="m15 5 5 5-5 5m5-5H10a6 6 0 0 0-6 6v3"/>
+  {% elif name == 'minus' %}<path d="M5 12h14"/>
+  {% elif name == 'plus' %}<path d="M5 12h14m-7-7v14"/>
   {% elif name == 'screen' %}<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>
   {% elif name == 'qr' %}<rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M15 15h3v3h3m-6 3h3m3-6v-3M3 12h3m6-9v3m0 6h3m-3 6v3"/>
   {% endif %}
@@ -82,7 +84,14 @@
         <aside class="preview-pane" id="preview-pane" aria-label="预览与导出">
           <div class="preview-toolbar"><div class="history-actions"><button type="button" class="icon-button" id="undo" data-tooltip="撤销上次修改" aria-label="撤销上次修改" disabled>{{ icon('undo') }}</button><button type="button" class="icon-button" id="redo" data-tooltip="重做已撤销的修改" aria-label="重做已撤销的修改" disabled>{{ icon('redo') }}</button></div></div>
           <div class="preview-canvas">
-            <div class="preview-card"><div class="preview-stage" id="preview-stage"><img id="preview-image" alt="生成的二维码预览" hidden><div id="preview-placeholder" class="preview-placeholder">{{ icon('qr') }}<span>等待生成二维码</span></div></div></div>
+            <div class="preview-viewport" id="preview-viewport" tabindex="0" role="region" aria-label="二维码预览画布">
+              <div class="preview-surface"><div class="preview-card"><div class="preview-stage" id="preview-stage"><img id="preview-image" alt="生成的二维码预览" hidden><div id="preview-placeholder" class="preview-placeholder">{{ icon('qr') }}<span>等待生成二维码</span></div></div></div></div>
+            </div>
+            <div class="preview-zoom" role="group" aria-label="预览缩放">
+              <button type="button" id="zoom-out" aria-label="缩小预览" disabled>{{ icon('minus') }}</button>
+              <button type="button" id="zoom-reset" title="重置为 100%" aria-label="重置预览缩放" disabled><output id="zoom-value" aria-live="polite" aria-atomic="true">100%</output></button>
+              <button type="button" id="zoom-in" aria-label="放大预览" disabled>{{ icon('plus') }}</button>
+            </div>
           </div>
           <div class="export-panel">
             <p id="status" class="visually-hidden" role="status" aria-live="polite">正在生成预览…</p>
