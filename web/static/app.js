@@ -115,6 +115,7 @@
       displayedLogo = settings.logo;
     }
     refreshButtons();
+    window.QRGControls?.sync();
   }
 
   function invalidate() {
@@ -286,6 +287,7 @@
         invalidInputs.delete(key);
         control.setAttribute('aria-invalid', 'false');
         control.value = key === 'logo_scale' ? String(Math.round(settings.logo_scale * 100)) : String(settings[key]);
+        window.QRGControls?.sync();
         invalidate();
       }
     });
@@ -391,6 +393,15 @@
     else document.documentElement.dataset.theme = theme;
   });
 
+  const viewButtons = [...document.querySelectorAll('.workspace-views [data-view]')];
+  for (const button of viewButtons) {
+    button.addEventListener('click', () => {
+      document.querySelector('.workspace').dataset.view = button.dataset.view;
+      for (const item of viewButtons) item.setAttribute('aria-pressed', String(item === button));
+    });
+  }
+
+  window.QRGControls?.init();
   syncControls();
   invalidate();
   window.addEventListener('pagehide', () => {

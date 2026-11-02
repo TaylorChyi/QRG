@@ -1,0 +1,78 @@
+/* Shared QRG control surfaces; native form elements remain as the application state. */
+.qrg-native-control { position: absolute !important; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; border: 0 !important; opacity: 0 !important; pointer-events: none !important; }
+.qrg-select, .qrg-number { position: relative; display: block; width: 100%; min-width: 0; }
+.qrg-select-trigger, .qrg-colour-trigger, .qrg-number input, .qrg-hex-input {
+  width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--raised); color: var(--text); font-size: 12px; transition: border-color .15s, box-shadow .15s;
+}
+.qrg-select-trigger, .qrg-colour-trigger { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; text-align: left; }
+.qrg-select-trigger:hover:not(:disabled), .qrg-colour-trigger:hover:not(:disabled), .qrg-number input:hover:not(:disabled) { border-color: var(--faint); }
+.qrg-select-trigger:focus-visible, .qrg-colour-trigger:focus-visible, .qrg-number input:focus-visible, .qrg-hex-input:focus-visible { outline: 0; border-color: var(--focus); box-shadow: 0 0 0 3px var(--soft-accent); }
+.qrg-select-trigger:disabled, .qrg-colour-trigger:disabled { opacity: .48; cursor: not-allowed; }
+.qrg-select-caption { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qrg-chevron { width: 8px; height: 8px; flex: none; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); color: var(--muted); }
+.qrg-select-trigger[aria-expanded="true"] .qrg-chevron { transform: rotate(225deg) translateY(-2px); }
+.theme-control .qrg-select { width: auto; }
+.theme-control .qrg-select-trigger { width: auto; min-height: 34px; padding: 4px 4px; border: 0; background: transparent; color: var(--muted); font-size: 12px; }
+.theme-control .qrg-select-trigger:focus-visible { box-shadow: none; outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.qrg-popup { position: fixed; z-index: 1000; overflow: auto; overscroll-behavior: contain; padding: 5px; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); box-shadow: var(--shadow); color: var(--text); }
+.qrg-option { display: block; width: 100%; min-height: 36px; padding: 7px 11px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font-size: 12px; text-align: left; white-space: nowrap; }
+.qrg-option:hover, .qrg-option.is-active { background: var(--soft-accent); color: var(--accent); }
+.qrg-option[aria-selected="true"] { font-weight: 700; color: var(--accent); }
+.qrg-option[aria-selected="true"]::after { content: '✓'; float: right; margin-left: 8px; }
+
+.qrg-colour-field { padding: 0; border: 0; background: transparent; }
+.qrg-colour-trigger { justify-content: flex-start; min-height: 44px; padding: 6px 9px; }
+.qrg-colour-swatch { display: block; width: 28px; height: 28px; flex: none; border: 1px solid var(--line); border-radius: 5px; }
+.qrg-colour-value { font-size: 11px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.qrg-colour-popup { padding: 12px; }
+.qrg-colour-preview { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; color: var(--muted); font-size: 11px; }
+.qrg-colour-preview > span { width: 25px; height: 25px; flex: none; border: 1px solid var(--line); border-radius: 6px; }
+.qrg-colour-preview strong { font-weight: 600; }
+.qrg-palette { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 13px; }
+.qrg-palette-swatch { width: 100%; aspect-ratio: 1; min-height: 33px; border: 1px solid var(--line); border-radius: 7px; box-shadow: inset 0 0 0 2px var(--raised); }
+.qrg-palette-swatch:hover { outline: 2px solid var(--focus); outline-offset: 1px; }
+.qrg-rgb-channels { display: grid; gap: 6px; padding: 10px 0 11px; margin-bottom: 10px; border-top: 1px solid var(--soft-line); border-bottom: 1px solid var(--soft-line); }
+.qrg-rgb-row { display: grid; grid-template-columns: 25px minmax(0, 1fr) 27px; align-items: center; gap: 8px; color: var(--muted); font-size: 10px; }
+.qrg-rgb-row output { color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
+.qrg-rgb-row input[type="range"] { width: 100%; height: 24px; margin: 0; appearance: none; background: transparent; }
+.qrg-rgb-row input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 9px; background: var(--line); }
+.qrg-rgb-row input[type="range"]::-moz-range-track { height: 5px; border-radius: 9px; background: var(--line); }
+.qrg-rgb-row input[type="range"]::-webkit-slider-thumb { width: 15px; height: 15px; margin-top: -5px; appearance: none; border: 3px solid var(--raised); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.qrg-rgb-row input[type="range"]::-moz-range-thumb { width: 10px; height: 10px; border: 3px solid var(--raised); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.qrg-rgb-row input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.qrg-hex-label { display: block; color: var(--muted); font-size: 11px; }
+.qrg-hex-input { display: block; margin: 6px 0 10px; padding: 8px 10px; font-variant-numeric: tabular-nums; }
+.qrg-hex-input[aria-invalid="true"] { border-color: var(--error); }
+.qrg-hex-error { display: block; margin: -5px 0 10px; color: var(--error); font-size: 10px; line-height: 1.4; }
+.qrg-hex-apply { width: 100%; min-height: 38px; border: 1px solid var(--accent); border-radius: 7px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 600; }
+.qrg-hex-apply:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+
+.qrg-number input { padding-right: 49px; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.qrg-number input::-webkit-inner-spin-button, .qrg-number input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.qrg-number-actions { position: absolute; top: 1px; right: 1px; bottom: 1px; display: flex; flex-direction: column; width: 35px; border-left: 1px solid var(--line); }
+.qrg-stepper { flex: 1; min-height: 0; padding: 0; border: 0; background: var(--subtle); color: var(--muted); line-height: 1; font-size: 14px; }
+.qrg-stepper:first-child { border-radius: 0 7px 0 0; border-bottom: 1px solid var(--line); }
+.qrg-stepper:last-child { border-radius: 0 0 7px 0; }
+.qrg-stepper:hover:not(:disabled) { color: var(--accent); background: var(--soft-accent); }
+.qrg-stepper:disabled { opacity: .4; }
+.qrg-number:has(input:disabled) { opacity: .5; }
+
+.check-row input { width: 36px; height: 22px; border-color: var(--line); background: var(--subtle); }
+.check-row input::before { width: 16px; height: 16px; background: var(--surface); }
+.check-row input:checked::before { transform: translateX(14px); }
+.check-row input:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.logo-options input[type="range"] { appearance: none; height: 24px; background: transparent; }
+.logo-options input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 9px; background: var(--line); }
+.logo-options input[type="range"]::-moz-range-track { height: 5px; border-radius: 9px; background: var(--line); }
+.logo-options input[type="range"]::-webkit-slider-thumb { appearance: none; width: 17px; height: 17px; margin-top: -6px; border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.logo-options input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.logo-options input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.upload-button { border-radius: 7px; background: var(--raised); }
+
+@media (max-width: 480px) {
+  .theme-control .qrg-select-trigger { min-height: 32px; font-size: 11px; }
+  .qrg-select-trigger, .qrg-colour-trigger, .qrg-number input, .qrg-hex-input { font-size: 16px; }
+  .qrg-popup { max-width: calc(100vw - 16px); }
+}

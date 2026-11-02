@@ -32,6 +32,8 @@
   <title>QRG · 二维码工作室</title>
   <link rel="icon" type="image/png" href="{{ url_for('icon') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='controls.css') }}">
+  <script src="{{ url_for('static', filename='controls.js') }}" defer></script>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
@@ -42,7 +44,7 @@
         <span class="brand-name">QRG<span class="brand-period">.</span></span>
         <span class="brand-divider" aria-hidden="true"></span><span class="brand-caption">二维码工作室</span>
       </div>
-      <label class="theme-control" for="theme">{{ icon('screen') }}<span class="visually-hidden">界面外观</span><select id="theme" aria-label="界面外观"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></label>
+      <div class="theme-control">{{ icon('screen') }}<span class="visually-hidden">界面外观</span><select id="theme" aria-label="界面外观"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></div>
     </header>
 
     <main class="main-content">
@@ -51,8 +53,12 @@
         <span class="intro-note">简单创作，自由分享 {{ icon('arrow') }}</span>
       </div>
 
-      <div class="workspace">
-        <section class="editor" aria-label="二维码编辑器">
+      <div class="workspace-views" role="group" aria-label="工作区视图">
+        <button type="button" data-view="editor" aria-pressed="true" aria-controls="editor">{{ icon('style') }} 编辑二维码</button>
+        <button type="button" data-view="preview" aria-pressed="false" aria-controls="preview-pane">{{ icon('qr') }} 预览与导出</button>
+      </div>
+      <div class="workspace" data-view="editor">
+        <section class="editor" id="editor" aria-label="二维码编辑器">
           <div class="editor-heading"><span class="editor-heading-title">{{ icon('qr') }} 二维码编辑器</span><span class="auto-badge"><span></span> 自动更新</span></div>
           <div class="editor-tabs" role="tablist" aria-label="编辑选项">
             <button type="button" role="tab" id="tab-content" data-panel="panel-content" aria-controls="panel-content" aria-selected="true" tabindex="0">{{ icon('link') }} 内容</button>
@@ -93,7 +99,7 @@
               <div class="logo-picker">
                 <div class="logo-thumb" id="logo-thumb" aria-hidden="true">＋</div>
                 <div class="logo-description"><strong id="logo-name">未选择图片</strong><span>PNG、JPEG 或 WebP · 最大 2 MiB</span></div>
-                <input id="logo-file" type="file" accept="image/png,image/jpeg,image/webp" class="visually-hidden"><label class="small-button upload-button" for="logo-file">{{ icon('image') }} 选择图片</label><button type="button" class="text-button" id="remove-logo" hidden>移除图片</button>
+                <div class="logo-actions"><input id="logo-file" type="file" accept="image/png,image/jpeg,image/webp" class="visually-hidden"><label class="small-button upload-button" for="logo-file">{{ icon('image') }} 选择图片</label><button type="button" class="text-button" id="remove-logo" hidden>移除图片</button></div>
               </div>
               <div class="field-grid logo-options" id="logo-options">
                 <div class="field"><label for="logo-scale">Logo 大小 <output id="logo-scale-value" for="logo-scale">19%</output></label><input id="logo-scale" type="range" min="5" max="25" step="1" value="19" disabled></div>
@@ -117,8 +123,8 @@
           <div class="editor-footer"><span>随改随看，无需点击生成</span>{{ icon('spark') }}</div>
         </section>
 
-        <aside class="preview-pane" aria-labelledby="preview-title">
-          <div class="preview-toolbar"><span id="preview-title">画布预览</span><div class="history-actions"><button type="button" class="icon-button" id="undo" title="撤销上次修改" aria-label="撤销上次修改" disabled>{{ icon('undo') }}</button><button type="button" class="icon-button" id="redo" title="重做已撤销的修改" aria-label="重做已撤销的修改" disabled>{{ icon('redo') }}</button></div></div>
+        <aside class="preview-pane" id="preview-pane" aria-labelledby="preview-title">
+          <div class="preview-toolbar"><span id="preview-title">画布预览</span><div class="history-actions"><button type="button" class="icon-button" id="undo" data-tooltip="撤销上次修改" aria-label="撤销上次修改" disabled>{{ icon('undo') }}</button><button type="button" class="icon-button" id="redo" data-tooltip="重做已撤销的修改" aria-label="重做已撤销的修改" disabled>{{ icon('redo') }}</button></div></div>
           <div class="preview-canvas">
             <div class="canvas-label"><span class="canvas-cross" aria-hidden="true">＋</span><span>YOUR NEXT CONNECTION</span><span class="canvas-cross" aria-hidden="true">＋</span></div>
             <div class="preview-card"><div class="preview-stage" id="preview-stage"><img id="preview-image" alt="生成的二维码预览" hidden><div id="preview-placeholder" class="preview-placeholder">{{ icon('qr') }}<span>等待生成二维码</span></div></div></div>

@@ -5,12 +5,6 @@ name = "QRG"
 script = ""
 
 [[actions]]
-name = "Mac · 打开 QRG"
-icon = "run"
-command = "./script/run-gui"
-platform = "darwin"
-
-[[actions]]
 name = "Web · 调测 QRG"
 icon = "run"
 command = "./script/run-web"

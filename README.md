@@ -2,7 +2,7 @@
 
 # QRG
 
-二维码工具，提供命令行、macOS 应用和可自部署的 Web 界面。输入链接或文字，输出 PNG 或 SVG。命令行和 macOS 应用在本机生成；Web 版在运行 QRG 的服务器生成，不调用第三方二维码服务。
+二维码工具，当前开发范围为可自部署的 Web 界面及其共用的命令行生成能力。输入链接或文字，输出 PNG 或 SVG。命令行在本机生成；Web 版在运行 QRG 的服务器生成，不调用第三方二维码服务。仓库保留既有 macOS 图形界面源码和使用说明，但不再开发或进行日常构建、测试与验收。
 
 ## Web 版与调测 Action
 
@@ -14,7 +14,7 @@
 
 首次运行会创建 `.venv` 并安装 `requirements-web.txt` 的依赖，之后无需联网安装。打开 [http://127.0.0.1:8000](http://127.0.0.1:8000)。在 Codex 项目的 Actions 中也可以选择「Web · 调测 QRG」；「Web · 自动测试」运行 Web 接口测试。调测服务监听本机，修改 Python 文件会自动重载，修改 HTML/CSS/JS 后刷新页面即可看到更新，按 Ctrl+C 停止。端口冲突时使用 `PORT=8001 ./script/run-web`。
 
-Web 界面将内容、样式、Logo 和高级规格分为四个标签，提供四套可一键应用的风格、自动预览、撤销/重做，以及 PNG/SVG 下载。标签支持方向键与 Home/End 切换，风格预设可以一步撤销；颜色、透明背景、码点和码眼形状、容错等级、版本、尺寸与 Logo 均可自定义。适配窄屏，支持浅色、深色和跟随系统。PNG 下载使用当前预览对应的图片；修改设置后须等待新预览成功才能导出。
+Web 界面将内容、样式、Logo 和高级规格分为四个标签，提供四套可一键应用的风格、自动预览、撤销/重做，以及 PNG/SVG 下载。标签支持方向键与 Home/End 切换，风格预设可以一步撤销；颜色、透明背景、码点和码眼形状、容错等级、版本、尺寸与 Logo 均可自定义。工作区随窗口宽高调整，桌面并排编辑与预览，手机竖屏可切换「编辑二维码／预览与导出」，常见窗口尺寸下无需上下滚动。下拉菜单、颜色面板（色板、RGB、十六进制）、数值步进、开关、滑杆和按钮均使用统一的定制样式，支持浅色、深色和跟随系统。PNG 下载使用当前预览对应的图片；修改设置后须等待新预览成功才能导出。
 
 链接、文字和 Logo 会发送到当前 QRG 服务器，应用不会将这些内容写入文件、数据库或浏览器持久存储，也不会在应用日志中记录请求正文。反向代理或托管环境的日志策略由部署者管理。Web 版不执行 macOS Vision 自动解码，请用目标设备扫码确认。
 
@@ -50,6 +50,15 @@ Web 测试可独立运行，或连同现有 CLI 测试运行：
 ```
 
 Web 接口测试在 macOS、Linux 均可运行；其中 macOS Vision 的真实解码用例只在 macOS 执行。
+
+可选的浏览器回归覆盖窗口适配、控件键盘操作、主题、Logo 和 PNG/SVG 下载。运行中的 Web 服务之外，仅此项开发检查需要 Node.js、Playwright Core 和 Chrome；Web 应用本身不需要 Node.js 或前端构建。依赖可放在忽略的 `build/` 中：
+
+```sh
+npm install --prefix build/browser-qa --no-package-lock --no-save playwright-core@1.64.1
+QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_web_ui.cjs
+```
+
+默认访问 `http://127.0.0.1:8000`，并使用 macOS 的 Google Chrome；其它地址或浏览器路径通过 `BASE_URL`、`BROWSER_EXECUTABLE_PATH` 指定。
 
 ## 使用
 
@@ -116,9 +125,11 @@ Logo 支持 PNG、JPEG 等 Pillow 能读取的图片；`--logo-scale` 是 Logo �
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-## macOS 图形界面
+## 保留的 macOS 图形界面
 
-运行 `./script/run-gui`，或在 Codex 项目的 Actions 里选择「Mac · 打开 QRG」。首次运行会编译本机应用；生成二维码时使用同一套 QRG CLI。打开后自动生成预览，修改内容、样式、规格或 Logo 后也会自动更新，无需点击生成按钮。连续输入或拖动时会在短暂停顿后更新，更新完成后可导出 PNG 或 SVG。预览右上角的「后退」「前进」可撤销和重做设置修改；后退后进行新修改会清除前进记录。非透明背景的预览和 PNG 导出会用 macOS Vision 验证；透明背景和 SVG 需要在实际使用环境中扫码确认。
+以下内容仅记录既有实现的使用方式；Mac 图形界面已退出当前开发范围，Codex 项目不再提供其启动 Action。
+
+运行 `./script/run-gui`。首次运行会编译本机应用；生成二维码时使用同一套 QRG CLI。打开后自动生成预览，修改内容、样式、规格或 Logo 后也会自动更新，无需点击生成按钮。连续输入或拖动时会在短暂停顿后更新，更新完成后可导出 PNG 或 SVG。预览右上角的「后退」「前进」可撤销和重做设置修改；后退后进行新修改会清除前进记录。非透明背景的预览和 PNG 导出会用 macOS Vision 验证；透明背景和 SVG 需要在实际使用环境中扫码确认。
 
 图形界面跟随 macOS 的浅色或深色外观。应用位于项目的 `build/QRG.app`，启动脚本负责传入项目路径；依赖和项目目录须保持可用。
 

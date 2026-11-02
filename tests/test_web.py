@@ -33,7 +33,7 @@ class WebTests(unittest.TestCase):
         page = self.client.get('/')
         self.assertEqual(page.status_code, 200)
         self.assertIn('QRG', page.get_data(as_text=True))
-        for path in ('/static/app.css', '/static/app.js', '/icon.png'):
+        for path in ('/static/app.css', '/static/controls.css', '/static/controls.js', '/static/app.js', '/icon.png'):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
