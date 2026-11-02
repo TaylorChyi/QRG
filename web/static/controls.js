@@ -226,6 +226,7 @@
   const palette = ['#202330', '#5145CD', '#4338CA', '#146C53', '#9A482F', '#F0A140', '#FFFFFF', '#F7F8FA', '#FFF8F0', '#E7D8F5'];
   function enhanceColour(input) {
     const wrapper = input.parentElement;
+    const transparent = input.id === 'background' ? document.getElementById('transparent') : null;
     const trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'qrg-colour-trigger';
@@ -246,8 +247,9 @@
     const output = wrapper.querySelector('output');
     if (output) output.classList.add('qrg-native-control');
     const sync = () => {
-      swatch.style.background = input.value;
-      value.textContent = input.value.toUpperCase();
+      swatch.classList.toggle('qrg-transparent-swatch', Boolean(transparent?.checked));
+      swatch.style.backgroundColor = transparent?.checked ? '' : input.value;
+      value.textContent = transparent?.checked ? '透明' : input.value.toUpperCase();
       trigger.setAttribute('aria-label', `${labelText(input)}：${value.textContent}`);
       trigger.disabled = input.disabled;
       if (input.disabled && openPanel?.trigger === trigger) closePanel();
@@ -262,6 +264,21 @@
       panel.setAttribute('role', 'dialog');
       panel.setAttribute('aria-modal', 'true');
       panel.setAttribute('aria-label', `${labelText(input)}颜色`);
+      if (transparent) {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'qrg-option qrg-transparent-option';
+        option.setAttribute('aria-pressed', String(transparent.checked));
+        option.innerHTML = '<span class="qrg-colour-swatch qrg-transparent-swatch" aria-hidden="true"></span><span>透明背景</span>';
+        option.addEventListener('click', () => {
+          transparent.checked = true;
+          transparent.dispatchEvent(new Event('change', { bubbles: true }));
+          sync();
+          closePanel();
+          trigger.focus();
+        });
+        panel.append(option);
+      }
       let pendingColour = input.value.toUpperCase();
       const preview = document.createElement('div');
       preview.className = 'qrg-colour-preview';

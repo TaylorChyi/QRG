@@ -83,7 +83,6 @@
     controls.color.value = settings.color;
     controls.background.value = settings.background;
     controls.transparent.checked = settings.transparent;
-    controls.background.disabled = settings.transparent;
     controls.module_shape.value = settings.module_shape;
     controls.eye_shape.value = settings.eye_shape;
     controls.margin.value = String(settings.margin);
@@ -98,7 +97,7 @@
     controls.logo_padding_modules.disabled = logoUnavailable;
     $('logo-options').hidden = !settings.logo;
     $('color-value').textContent = settings.color.toUpperCase();
-    $('background-value').textContent = settings.background.toUpperCase();
+    $('background-value').textContent = settings.transparent ? '透明' : settings.background.toUpperCase();
     $('logo-name').textContent = settings.logo_name || '选择图片';
     $('logo-thumb').hidden = !settings.logo;
     $('logo-placeholder').hidden = Boolean(settings.logo);
@@ -156,7 +155,7 @@
   }
 
   function update(key, value, coalesce = false) {
-    if (settings[key] === value) return;
+    if (settings[key] === value && (key !== 'background' || !settings.transparent)) return;
     const now = Date.now();
     if (!(coalesce && lastEdit.key === key && now - lastEdit.time < 650 && future.length === 0)) {
       past.push({ ...settings });
@@ -165,6 +164,7 @@
     future = [];
     lastEdit = { key: coalesce ? key : null, time: now };
     settings = { ...settings, [key]: value };
+    if (key === 'background') settings.transparent = false;
     if (key === 'logo_modules') adoptLogoOptions(logoOptions);
     syncControls();
     invalidate();

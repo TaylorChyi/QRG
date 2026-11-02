@@ -29,6 +29,10 @@
 .qrg-colour-swatch { display: block; width: 30px; height: 30px; flex: none; border: 1px solid var(--line); border-radius: 5px; }
 .qrg-colour-value { font-size: 13px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .qrg-colour-popup { padding: 12px; }
+.qrg-transparent-swatch { background-color: var(--checker-base); background-image: conic-gradient(var(--checker) 25%, transparent 0 50%, var(--checker) 0 75%, transparent 0); background-size: 12px 12px; }
+.qrg-transparent-option { margin-bottom: 12px; }
+.qrg-transparent-option[aria-pressed="true"] { color: var(--accent); background: var(--soft-accent); }
+.qrg-transparent-option[aria-pressed="true"]::after { content: '✓'; margin-left: auto; }
 .qrg-colour-preview { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; color: var(--muted); font-size: 11px; }
 .qrg-colour-preview > span { width: 25px; height: 25px; flex: none; border: 1px solid var(--line); border-radius: 6px; }
 .qrg-colour-preview strong { font-weight: 600; }
