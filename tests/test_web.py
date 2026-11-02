@@ -62,6 +62,73 @@ class WebTests(unittest.TestCase):
         embedded = root.find('{http://www.w3.org/2000/svg}image')
         self.assertTrue(embedded.get('href').startswith('data:image/png;base64,'))
 
+    def test_small_uploaded_icon_obeys_scale_and_clearance(self):
+        logo = logo_data((16, 8))
+        renders = {}
+        for scale, padding in ((.10, 0), (.20, 0), (.20, 32)):
+            result = self.render(format='svg', version=5, logo=logo,
+                                 logo_scale=scale, logo_padding_px=padding)
+            self.assertEqual(result.status_code, 200, result.json)
+            renders[(scale, padding)] = ET.fromstring(result.data)
+        ns = '{http://www.w3.org/2000/svg}'
+        small = renders[(.10, 0)].find(ns + 'image')
+        large = renders[(.20, 0)].find(ns + 'image')
+        self.assertGreater(float(small.get('width')), 16 / 8)
+        self.assertAlmostEqual(float(large.get('width')) / float(small.get('width')), 2, delta=.1)
+        self.assertAlmostEqual(float(large.get('width')) / float(large.get('height')), 2, delta=.1)
+        self.assertLess(len(renders[(.20, 32)].findall(ns + 'rect')),
+                        len(renders[(.20, 0)].findall(ns + 'rect')))
+
+    def test_logo_crop_selects_source_pixels_before_embedding(self):
+        source = Image.new('RGB', (40, 20), '#ff0000')
+        source.paste('#0000ff', (20, 0, 40, 20))
+        buffer = io.BytesIO()
+        source.save(buffer, 'PNG')
+        logo = 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('ascii')
+        result = self.render(format='svg', version=5, logo=logo,
+                             logo_crop={'x': 20, 'y': 0, 'width': 20, 'height': 20})
+        self.assertEqual(result.status_code, 200, result.json)
+        embedded = ET.fromstring(result.data).find('{http://www.w3.org/2000/svg}image')
+        with Image.open(io.BytesIO(base64.b64decode(embedded.get('href').split(',', 1)[1]))) as cropped:
+            self.assertEqual(cropped.size[0], cropped.size[1])
+            self.assertEqual(cropped.getpixel((cropped.width // 2, cropped.height // 2))[:3], (0, 0, 255))
+
+    def test_logo_crop_uses_exif_oriented_coordinates(self):
+        source = Image.new('RGB', (40, 20), '#ff0000')
+        source.paste('#0000ff', (20, 0, 40, 20))
+        exif = Image.Exif()
+        exif[274] = 6
+        buffer = io.BytesIO()
+        source.save(buffer, 'JPEG', exif=exif)
+        logo = 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('ascii')
+        result = self.render(format='svg', version=5, logo=logo,
+                             logo_crop={'x': 0, 'y': 20, 'width': 20, 'height': 20})
+        self.assertEqual(result.status_code, 200, result.json)
+        embedded = ET.fromstring(result.data).find('{http://www.w3.org/2000/svg}image')
+        with Image.open(io.BytesIO(base64.b64decode(embedded.get('href').split(',', 1)[1]))) as cropped:
+            r, g, b = cropped.getpixel((cropped.width // 2, cropped.height // 2))[:3]
+            self.assertLess(r, 20)
+            self.assertLess(g, 20)
+            self.assertGreater(b, 230)
+
+    def test_invalid_logo_crops_are_client_errors(self):
+        logo = logo_data((40, 20))
+        cases = [
+            ({'x': 0, 'y': 0, 'width': 1, 'height': 1}, None),
+            ({'x': -1, 'y': 0, 'width': 1, 'height': 1}, logo),
+            ({'x': 20, 'y': 0, 'width': 21, 'height': 1}, logo),
+            ({'x': 0, 'y': 0, 'width': 0, 'height': 1}, logo),
+            ({'x': True, 'y': 0, 'width': 1, 'height': 1}, logo),
+            ({'x': 0.5, 'y': 0, 'width': 1, 'height': 1}, logo),
+            ({'x': 0, 'y': 0, 'width': 1}, logo),
+            ({'x': 0, 'y': 0, 'width': 1, 'height': 1, 'extra': 1}, logo),
+            ([0, 0, 1, 1], logo),
+        ]
+        for crop, image in cases:
+            with self.subTest(crop=crop, has_logo=image is not None):
+                result = self.render(logo=image, logo_crop=crop)
+                self.assertEqual(result.status_code, 400)
+
     def test_logo_alignment_rejected(self):
         result = self.render(version=7, logo=logo_data())
         self.assertEqual(result.status_code, 400)

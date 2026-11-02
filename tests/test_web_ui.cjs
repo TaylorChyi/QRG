@@ -135,6 +135,7 @@ async function main() {
 
     await page.locator('#tab-logo').click();
     await page.locator('#logo-file').setInputFiles('assets/icon.png');
+    await page.locator('#apply-logo-crop').click();
     await page.locator('#remove-logo').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#logo-scale').isDisabled(), false);
     await page.setViewportSize({ width: 320, height: 568 });

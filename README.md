@@ -16,6 +16,8 @@
 
 Web 界面将内容、样式、Logo 和高级规格分为四个标签，提供四套可一键应用的风格、自动预览、撤销/重做，以及 PNG/SVG 下载。标签支持方向键与 Home/End 切换，风格预设可以一步撤销；颜色、透明背景、码点和码眼形状、容错等级、版本、尺寸与 Logo 均可自定义。工作区随窗口宽高调整，桌面并排编辑与预览，手机竖屏可切换「编辑二维码／预览与导出」，常见窗口尺寸下无需上下滚动。下拉菜单、颜色面板（色板、RGB、十六进制）、数值步进、开关、滑杆和按钮均使用统一的定制样式，支持浅色、深色和跟随系统。PNG 下载使用当前预览对应的图片；修改设置后须等待新预览成功才能导出。
 
+上传 Logo 后可框选实际使用的范围，拖动选区、调整四角或输入像素坐标，并在确认后应用到预览及 PNG/SVG 导出。「调整范围」可重新编辑原图，裁剪也支持撤销/重做。Logo 大小会按所选比例放大或缩小，并保留长宽比；周围留白按完整码点向外取整，因此相邻的小像素值可能呈现相同效果。
+
 链接、文字和 Logo 会发送到当前 QRG 服务器，应用不会将这些内容写入文件、数据库或浏览器持久存储，也不会在应用日志中记录请求正文。反向代理或托管环境的日志策略由部署者管理。Web 版不执行 macOS Vision 自动解码，请用目标设备扫码确认。
 
 为限制服务器资源占用，Web 输出尺寸为 64–4096 像素，边距为 0–32 个码点；Logo 接受 PNG/JPEG/WebP，文件最多 2 MiB，宽高各不超过 4096 像素；请求最多 3 MiB。内容最多 8192 个 UTF-8 字节，实际二维码容量仍受版本和容错等级限制。SVG 导出不分配整张位图画布，PNG 抗锯齿画布的单边上限为 4096 像素。
@@ -56,6 +58,7 @@ Web 接口测试在 macOS、Linux 均可运行；其中 macOS Vision 的真实�
 ```sh
 npm install --prefix build/browser-qa --no-package-lock --no-save playwright-core@1.64.1
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_web_ui.cjs
+QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_logo_ui.cjs
 ```
 
 默认访问 `http://127.0.0.1:8000`，并使用 macOS 的 Google Chrome；其它地址或浏览器路径通过 `BASE_URL`、`BROWSER_EXECUTABLE_PATH` 指定。

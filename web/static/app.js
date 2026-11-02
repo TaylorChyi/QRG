@@ -31,7 +31,7 @@
   const initial = {
     content: 'https://example.com', color: '#000000', background: '#ffffff', transparent: false,
     module_shape: 'tile', eye_shape: 'rounded', margin: 4, error_correction: 'H', version: null,
-    size: 1024, crisp: false, logo: null, logo_name: '', logo_scale: 0.19, logo_padding_px: 1,
+    size: 1024, crisp: false, logo: null, logo_name: '', logo_crop: null, logo_scale: 0.19, logo_padding_px: 1,
   };
 
   let settings = { ...initial };
@@ -47,6 +47,7 @@
   let readyRevision = -1;
   let busyExport = false;
   let displayedLogo = null;
+  let displayedCrop = null;
   let logoReadToken = 0;
   const invalidInputs = new Set();
 
@@ -101,18 +102,31 @@
       button.setAttribute('aria-pressed', String(Boolean(selected)));
     }
     $('remove-logo').hidden = !settings.logo;
-    if (settings.logo !== displayedLogo) {
+    $('edit-logo-crop').hidden = !settings.logo;
+    if (settings.logo !== displayedLogo || settings.logo_crop !== displayedCrop) {
       const thumb = $('logo-thumb');
       thumb.replaceChildren();
       if (settings.logo) {
         const image = document.createElement('img');
+        const source = settings.logo;
+        const crop = settings.logo_crop;
         image.alt = '';
-        image.src = settings.logo;
-        thumb.append(image);
+        image.onload = () => {
+          if (settings.logo !== source || settings.logo_crop !== crop) return;
+          const box = crop || { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight };
+          const canvas = document.createElement('canvas');
+          const scale = 112 / Math.max(box.width, box.height);
+          canvas.width = Math.max(1, Math.round(box.width * scale));
+          canvas.height = Math.max(1, Math.round(box.height * scale));
+          canvas.getContext('2d').drawImage(image, box.x, box.y, box.width, box.height, 0, 0, canvas.width, canvas.height);
+          thumb.replaceChildren(canvas);
+        };
+        image.src = source;
       } else {
         thumb.textContent = '＋';
       }
       displayedLogo = settings.logo;
+      displayedCrop = settings.logo_crop;
     }
     refreshButtons();
     window.QRGControls?.sync();
@@ -163,6 +177,7 @@
   function travel(from, to) {
     if (!from.length) return;
     logoReadToken += 1;
+    window.QRGLogoCrop.close();
     to.push({ ...settings });
     if (to.length > 40) to.shift();
     settings = from.pop();
@@ -180,7 +195,7 @@
       margin: settings.margin, error_correction: settings.error_correction,
       version: settings.version, size: settings.size, crisp: settings.crisp,
       logo: settings.logo, logo_scale: settings.logo_scale,
-      logo_padding_px: settings.logo_padding_px, format,
+      logo_crop: settings.logo_crop, logo_padding_px: settings.logo_padding_px, format,
     };
   }
 
@@ -337,6 +352,7 @@
     const file = logoFile.files?.[0];
     logoFile.value = '';
     if (!file) return;
+    window.QRGLogoCrop.close();
     const readToken = ++logoReadToken;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       announce('请选择 PNG、JPEG 或 WebP 图片。', 'error');
@@ -355,25 +371,42 @@
       });
       if (readToken !== logoReadToken) return;
       if (typeof data !== 'string') throw new Error('无法读取图片。');
-      past.push({ ...settings });
-      if (past.length > 40) past.shift();
-      future = [];
-      lastEdit = { key: null, time: 0 };
-      settings = { ...settings, logo: data, logo_name: file.name };
-      syncControls();
-      invalidate();
-    } catch {
-      if (readToken === logoReadToken) announce('无法读取 Logo 图片。', 'error');
+      await window.QRGLogoCrop.open({ source: data, name: file.name, onApply: applyLogo });
+    } catch (error) {
+      if (readToken === logoReadToken) announce(error.message || '无法读取 Logo 图片。', 'error');
     }
   });
-  $('remove-logo').addEventListener('click', () => {
-    if (!settings.logo) return;
-    logoReadToken += 1;
+
+  function applyLogo(values) {
+    if (settings.logo === values.logo && JSON.stringify(settings.logo_crop) === JSON.stringify(values.logo_crop)) return;
     past.push({ ...settings });
     if (past.length > 40) past.shift();
     future = [];
     lastEdit = { key: null, time: 0 };
-    settings = { ...settings, logo: null, logo_name: '' };
+    invalidInputs.delete('logo_scale');
+    invalidInputs.delete('logo_padding_px');
+    settings = { ...settings, ...values };
+    syncControls();
+    invalidate();
+  }
+
+  $('edit-logo-crop').addEventListener('click', async () => {
+    if (!settings.logo) return;
+    try {
+      await window.QRGLogoCrop.open({ source: settings.logo, name: settings.logo_name, crop: settings.logo_crop, onApply: applyLogo });
+    } catch { announce('无法读取 Logo 图片。', 'error'); }
+  });
+  $('remove-logo').addEventListener('click', () => {
+    if (!settings.logo) return;
+    logoReadToken += 1;
+    window.QRGLogoCrop.close();
+    past.push({ ...settings });
+    if (past.length > 40) past.shift();
+    future = [];
+    lastEdit = { key: null, time: 0 };
+    invalidInputs.delete('logo_scale');
+    invalidInputs.delete('logo_padding_px');
+    settings = { ...settings, logo: null, logo_name: '', logo_crop: null };
     syncControls();
     invalidate();
   });
@@ -406,6 +439,7 @@
   invalidate();
   window.addEventListener('pagehide', () => {
     logoReadToken += 1;
+    window.QRGLogoCrop.close();
     clearTimeout(renderTimer);
     controller?.abort();
     exportController?.abort();

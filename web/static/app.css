@@ -8,6 +8,7 @@
   --success: #1d765b; --success-soft: #eaf6f0; --error: #c13545;
   --shadow: 0 4px 12px #252b4214, 0 24px 54px #252b4210; --frame-shadow: 0 3px 18px #252b4204;
   --checker: #e5e7ed; --checker-base: #ffffff;
+  --crop-scrim: #20233099;
   --preset-classic: #202330; --preset-indigo: #4338ca; --preset-forest: #146c53; --preset-clay: #9a482f;
   --preset-paper: #ffffff; --preset-clay-paper: #fff8f0;
 }
@@ -21,6 +22,7 @@
   --success: #78ceae; --success-soft: #233b34; --error: #ff96a2;
   --shadow: 0 4px 12px #00000033, 0 24px 54px #00000040; --frame-shadow: 0 3px 18px #0000000a;
   --checker: #d9dce5; --checker-base: #f7f8fc;
+  --crop-scrim: #05060ab3;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
@@ -31,6 +33,7 @@
     --soft-accent: #302c49; --focus: #b9b1ff; --success: #78ceae; --success-soft: #233b34; --error: #ff96a2;
     --shadow: 0 4px 12px #00000033, 0 24px 54px #00000040; --frame-shadow: 0 3px 18px #0000000a;
     --checker: #d9dce5; --checker-base: #f7f8fc;
+    --crop-scrim: #05060ab3;
   }
 }
 * { box-sizing: border-box; }
@@ -137,6 +140,7 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .logo-actions { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .logo-thumb { display: grid; place-items: center; width: 56px; height: 56px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); background: var(--raised); font-size: 27px; font-weight: 300; }
 .logo-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.logo-thumb canvas { max-width: 100%; max-height: 100%; }
 .logo-description { min-width: 0; max-width: 100%; text-align: center; }
 .logo-description strong { display: block; overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .logo-description span { display: block; margin-top: 4px; color: var(--faint); font-size: 10px; }
@@ -150,6 +154,30 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .logo-options output { float: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 .logo-options input[type="range"] { width: 100%; margin: 12px 0; accent-color: var(--accent); }
 .logo-options :disabled { opacity: .5; }
+.logo-crop-dialog { width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 22px; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.logo-crop-dialog::backdrop { background: var(--crop-scrim); }
+.crop-heading h2 { margin: 0 0 4px; font-size: 18px; }
+.crop-heading p { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+.crop-workspace { display: flex; justify-content: center; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background-color: var(--checker-base); background-image: conic-gradient(var(--checker) 25%, transparent 0 50%, var(--checker) 0 75%, transparent 0); background-size: 16px 16px; }
+#logo-crop-canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: min(40dvh, 340px); touch-action: none; cursor: crosshair; }
+.crop-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.crop-fields .field { gap: 5px; }
+.crop-fields input { min-width: 0; }
+.crop-fields input[aria-invalid="true"] { border-color: var(--error); }
+.crop-actions, .crop-actions > div { display: flex; align-items: center; gap: 10px; }
+.crop-actions { justify-content: space-between; margin-top: 16px; }
+.crop-apply { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.crop-apply:hover { background: var(--accent-strong); color: var(--accent-ink); }
+.crop-apply:disabled { opacity: .5; }
+@media (max-width: 480px) {
+  .logo-crop-dialog { padding: 16px; }
+  .crop-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crop-actions { align-items: stretch; flex-direction: column; }
+  .crop-actions > div { justify-content: flex-end; }
+}
+@media (max-width: 480px) and (max-height: 700px) {
+  #logo-crop-canvas { max-height: max(80px, calc(100dvh - 450px)); }
+}
 .advanced-grid { gap: 18px 16px; }
 .editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; padding: 8px 26px; border-top: 1px solid var(--soft-line); color: var(--faint); font-size: 10px; }
 .editor-footer .icon { width: 14px; height: 14px; }

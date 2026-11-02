@@ -91,7 +91,12 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     if args.logo is not None:
         logo = args.logo.convert('RGBA')
         max_side = n * args.logo_scale
-        logo.thumbnail((max(1, round(max_side*px)), max(1, round(max_side*px))), Image.Resampling.LANCZOS)
+        # Scale both small and large uploads to the selected share of the QR body.
+        # thumbnail() only shrinks, so common small icons otherwise stay the same size.
+        target_side = max(1, round(max_side * px))
+        ratio = target_side / max(logo.size)
+        logo = logo.resize((max(1, round(logo.width * ratio)),
+                            max(1, round(logo.height * ratio))), Image.Resampling.LANCZOS)
         lw, lh = logo.width/px, logo.height/px
         logo_x, logo_y = (n-lw)/2, (n-lh)/2
         padding = 1.25 if args.logo_padding_px is None else args.logo_padding_px * supersample / px

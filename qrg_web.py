@@ -9,7 +9,7 @@ import warnings
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import HTTPException
 
 from qrg import QRSettings, color, render_qr
@@ -62,9 +62,24 @@ def read_logo(value):
             with Image.open(io.BytesIO(raw), formats=('PNG', 'JPEG', 'WEBP')) as image:
                 if image.width * image.height > MAX_LOGO_PIXELS or max(image.size) > 4096:
                     raise ValueError('Logo 图片宽高不能超过 4096 像素')
-                return image.convert('RGBA')
+                return ImageOps.exif_transpose(image).convert('RGBA')
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise ValueError('无法读取 Logo，请使用有效的 PNG、JPEG 或 WebP 图片') from None
+
+
+def crop_logo(logo, crop):
+    if crop is None:
+        return logo
+    if logo is None:
+        raise ValueError('请先上传 Logo 再选择裁剪范围')
+    if not isinstance(crop, dict) or set(crop) != {'x', 'y', 'width', 'height'}:
+        raise ValueError('Logo 裁剪范围无效')
+    if any(type(crop[key]) is not int for key in crop):
+        raise ValueError('Logo 裁剪坐标必须为整数')
+    x, y, width, height = (crop[key] for key in ('x', 'y', 'width', 'height'))
+    if x < 0 or y < 0 or width <= 0 or height <= 0 or x + width > logo.width or y + height > logo.height:
+        raise ValueError('Logo 裁剪范围超出图片边界')
+    return logo.crop((x, y, x + width, y + height))
 
 
 def settings_from_json(data):
@@ -94,6 +109,7 @@ def settings_from_json(data):
     logo_scale = data.get('logo_scale', .19)
     if type(logo_scale) not in (int, float) or not 0 < logo_scale <= .25:
         raise ValueError('Logo 比例必须大于 0 且不超过 0.25')
+    logo = crop_logo(read_logo(data.get('logo')), data.get('logo_crop'))
     return QRSettings(
         content=content, **colours,
         module_shape=choice(data, 'module_shape', 'tile', ('square', 'tile', 'circle')),
@@ -102,7 +118,7 @@ def settings_from_json(data):
         error_correction=choice(data, 'error_correction', 'H', ('L', 'M', 'Q', 'H')),
         version=integer(data, 'version', None, 1, 40, nullable=True),
         size=integer(data, 'size', 1024, 64, 4096),
-        crisp=crisp, logo=read_logo(data.get('logo')), logo_scale=logo_scale,
+        crisp=crisp, logo=logo, logo_scale=logo_scale,
         logo_padding_px=integer(data, 'logo_padding_px', None, 0, 128, nullable=True),
     )
 
