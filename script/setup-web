@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ ! -x "$ROOT/.venv/bin/python" ]; then
+  python3 -m venv "$ROOT/.venv"
+fi
+# Compare installed versions, not just imports, so dependency updates take effect.
+if ! "$ROOT/.venv/bin/python" - "$ROOT" <<'PY'
+import importlib.metadata
+import sys
+from pathlib import Path
+root = Path(sys.argv[1])
+try:
+    for name in ('requirements.txt', 'requirements-web.txt'):
+        for line in (root / name).read_text().splitlines():
+            if '==' in line:
+                package, version = line.split('==')
+                if importlib.metadata.version(package) != version:
+                    raise ValueError(package)
+except (importlib.metadata.PackageNotFoundError, ValueError):
+    sys.exit(1)
+PY
+then
+  echo '正在安装 QRG Web 依赖…' >&2
+  "$ROOT/.venv/bin/python" -m pip install -r "$ROOT/requirements-web.txt" >&2
+fi

@@ -7,6 +7,7 @@ import math
 import subprocess
 import sys
 from pathlib import Path
+from dataclasses import dataclass
 
 import qrcode
 from PIL import Image, ImageColor, ImageDraw
@@ -34,6 +35,117 @@ def positive(value):
 def svg_color(c):
     return f'#{c[0]:02x}{c[1]:02x}{c[2]:02x}', c[3] / 255
 
+@dataclass(frozen=True)
+class QRSettings:
+    content: str
+    color: tuple = (0, 0, 0, 255)
+    background: tuple = (255, 255, 255, 255)
+    module_shape: str = 'square'
+    eye_shape: str = 'square'
+    margin: int = 4
+    error_correction: str = 'M'
+    version: int | None = None
+    size: int = 1024
+    crisp: bool = False
+    logo: Image.Image | None = None
+    logo_scale: float = .20
+    logo_padding_px: int | None = None
+
+
+@dataclass(frozen=True)
+class RenderResult:
+    data: bytes
+    version: int
+    modules: int
+
+
+def render_qr(args: QRSettings, output_format: str) -> RenderResult:
+    """Render in memory for both the CLI and web app; no filesystem or subprocesses."""
+    if output_format not in ('png', 'svg'):
+        raise ValueError('输出格式必须为 PNG 或 SVG')
+    qr = qrcode.QRCode(version=args.version, error_correction=LEVELS[args.error_correction], box_size=1, border=0)
+    qr.add_data(args.content)
+    try:
+        qr.make(fit=args.version is None)
+    except DataOverflowError:
+        raise ValueError('内容无法放入指定版本和容错等级；请选择更大的版本或自动版本') from None
+    matrix = qr.get_matrix(); n = len(matrix); total = n + 2 * args.margin
+    if args.size < total: raise ValueError(f'输出尺寸至少需要 {total} 像素，以容纳每个码点')
+    fg, fa = svg_color(args.color); bg, ba = svg_color(args.background)
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{args.size}" height="{args.size}" viewBox="0 0 {total} {total}">',
+             f'<rect width="{total}" height="{total}" fill="{bg}" fill-opacity="{ba}"/>']
+    # Keep the QR grid on whole pixels; antialias only the rounded edges.
+    supersample = 1 if args.crisp else max(1, min(4, 4096 // args.size))
+    image = Image.new('RGBA', (args.size * supersample, args.size * supersample), args.background) if output_format == 'png' else None
+    draw = ImageDraw.Draw(image) if image is not None else None
+    px = (args.size // total) * supersample
+    offset = (args.size * supersample - total * px) / 2
+    def rect(x, y, w, h, radius, fill):
+        x += args.margin; y += args.margin
+        c, a = svg_color(fill)
+        parts.append(f'<rect x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}" rx="{radius:g}" fill="{c}" fill-opacity="{a}"/>')
+        box = (round(offset+x*px), round(offset+y*px), round(offset+(x+w)*px)-1, round(offset+(y+h)*px)-1)
+        if draw is not None:
+            draw.rounded_rectangle(box, radius=radius*px, fill=fill)
+    logo = None
+    if args.logo is not None:
+        logo = args.logo.convert('RGBA')
+        max_side = n * args.logo_scale
+        logo.thumbnail((max(1, round(max_side*px)), max(1, round(max_side*px))), Image.Resampling.LANCZOS)
+        lw, lh = logo.width/px, logo.height/px
+        logo_x, logo_y = (n-lw)/2, (n-lh)/2
+        padding = 1.25 if args.logo_padding_px is None else args.logo_padding_px * supersample / px
+        clear_left = math.floor(logo_x-padding)
+        clear_top = math.floor(logo_y-padding)
+        clear_right = math.ceil(logo_x+lw+padding)
+        clear_bottom = math.ceil(logo_y+lh+padding)
+        # Do not erase alignment patterns, which are structural QR features.
+        positions = qrcode.util.pattern_position(qr.version)
+        for cy in positions:
+            for cx in positions:
+                if (cx <= 8 and cy <= 8) or (cx >= n-9 and cy <= 8) or (cx <= 8 and cy >= n-9):
+                    continue
+                if clear_left < cx+3 and clear_right > cx-2 and clear_top < cy+3 and clear_bottom > cy-2:
+                    raise ValueError('Logo 留白与二维码的定位结构重叠；请减小 Logo 或更换版本')
+    eyes = [(0,0), (n-7,0), (0,n-7)]
+    for y, row in enumerate(matrix):
+        for x, dark in enumerate(row):
+            if not dark or any(ex <= x < ex+7 and ey <= y < ey+7 for ex,ey in eyes): continue
+            if logo is not None and clear_left <= x < clear_right and clear_top <= y < clear_bottom: continue
+            inset = .12 if args.module_shape == 'tile' else 0
+            side = 1 - 2 * inset
+            radius = {'square':0, 'tile':.16, 'circle':.5}[args.module_shape]
+            rect(x+inset,y+inset,side,side,radius,args.color)
+    # Finder patterns contain a 7×7 outer frame, a background-coloured ring and a 3×3 centre.
+    # Clear the ring so transparent backgrounds remain transparent.
+    for index,(x,y) in enumerate(eyes):
+        start = len(parts)
+        radius = 0 if args.eye_shape == 'square' else 1.5
+        rect(x,y,7,7,radius,args.color)
+        rect(x+1,y+1,5,5,0 if radius == 0 else .8,args.background)
+        rect(x+2,y+2,3,3,0 if radius == 0 else .6,args.color)
+        outer, _, centre = parts[start:]
+        del parts[start:]
+        inner_radius = 0 if radius == 0 else .8
+        parts.append(f'<mask id="eye{index}"><rect width="{total}" height="{total}" fill="white"/><rect x="{x+1+args.margin}" y="{y+1+args.margin}" width="5" height="5" rx="{inner_radius}" fill="black"/></mask><g mask="url(#eye{index})">{outer}</g>{centre}')
+    if logo is not None:
+        x, y = logo_x, logo_y
+        if image is not None:
+            image.alpha_composite(logo, (round(offset+(x+args.margin)*px), round(offset+(y+args.margin)*px)))
+        data = io.BytesIO(); logo.save(data, format='PNG')
+        encoded = base64.b64encode(data.getvalue()).decode('ascii')
+        parts.append(f'<image x="{x+args.margin:g}" y="{y+args.margin:g}" width="{lw:g}" height="{lh:g}" href="data:image/png;base64,{encoded}"/>')
+    parts.append('</svg>')
+    if output_format == 'svg':
+        data = ('\n'.join(parts)+'\n').encode('utf-8')
+    else:
+        if supersample != 1:
+            image = image.resize((args.size, args.size), Image.Resampling.BOX)
+        buffer = io.BytesIO()
+        image.save(buffer, 'PNG')
+        data = buffer.getvalue()
+    return RenderResult(data, qr.version, n)
+
 def main():
     p = argparse.ArgumentParser(description='生成可自定义样式的二维码（PNG 或 SVG）')
     p.add_argument('content', help='链接或其他二维码内容')
@@ -58,88 +170,20 @@ def main():
     if args.size < 64 or args.size > 16384: p.error('--size 必须在 64–16384 之间')
     if not 0 < args.logo_scale <= .25: p.error('--logo-scale 必须大于 0 且不超过 0.25')
     if args.color[3] == 0: p.error('码颜色不能完全透明')
-    qr = qrcode.QRCode(version=args.version, error_correction=LEVELS[args.error_correction], box_size=1, border=0)
-    qr.add_data(args.content)
-    try:
-        qr.make(fit=args.version is None)
-    except DataOverflowError:
-        p.error('内容无法放入指定版本和容错等级；请选择更大的版本或自动版本')
-    matrix = qr.get_matrix(); n = len(matrix); total = n + 2 * args.margin
-    if args.size < total: p.error(f'输出尺寸至少需要 {total} 像素，以容纳每个码点')
-    scale = args.size / total
-    fg, fa = svg_color(args.color); bg, ba = svg_color(args.background)
-    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{args.size}" height="{args.size}" viewBox="0 0 {total} {total}">',
-             f'<rect width="{total}" height="{total}" fill="{bg}" fill-opacity="{ba}"/>']
-    # Keep the QR grid on whole pixels; antialias only the rounded edges.
-    supersample = 1 if args.crisp or args.size > 4096 else 4
-    image = Image.new('RGBA', (args.size * supersample, args.size * supersample), args.background)
-    draw = ImageDraw.Draw(image)
-    px = (args.size // total) * supersample
-    offset = (args.size * supersample - total * px) / 2
-    def rect(x, y, w, h, radius, fill):
-        x += args.margin; y += args.margin
-        c, a = svg_color(fill)
-        parts.append(f'<rect x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}" rx="{radius:g}" fill="{c}" fill-opacity="{a}"/>')
-        box = (round(offset+x*px), round(offset+y*px), round(offset+(x+w)*px)-1, round(offset+(y+h)*px)-1)
-        draw.rounded_rectangle(box, radius=radius*px, fill=fill)
     logo = None
     if args.logo:
         try:
-            logo = Image.open(args.logo.expanduser()).convert('RGBA')
+            with Image.open(args.logo.expanduser()) as source:
+                logo = source.convert('RGBA')
         except (OSError, ValueError) as exc:
             p.error(f'无法读取 Logo: {exc}')
-        max_side = n * args.logo_scale
-        logo.thumbnail((max(1, round(max_side*px)), max(1, round(max_side*px))), Image.Resampling.LANCZOS)
-        lw, lh = logo.width/px, logo.height/px
-        logo_x, logo_y = (n-lw)/2, (n-lh)/2
-        padding = 1.25 if args.logo_padding_px is None else args.logo_padding_px * supersample / px
-        clear_left = math.floor(logo_x-padding)
-        clear_top = math.floor(logo_y-padding)
-        clear_right = math.ceil(logo_x+lw+padding)
-        clear_bottom = math.ceil(logo_y+lh+padding)
-        # Do not erase alignment patterns, which are structural QR features.
-        positions = qrcode.util.pattern_position(qr.version)
-        for cy in positions:
-            for cx in positions:
-                if (cx <= 8 and cy <= 8) or (cx >= n-9 and cy <= 8) or (cx <= 8 and cy >= n-9):
-                    continue
-                if clear_left < cx+3 and clear_right > cx-2 and clear_top < cy+3 and clear_bottom > cy-2:
-                    p.error('Logo 留白与二维码的定位结构重叠；请减小 Logo 或更换版本')
-    eyes = [(0,0), (n-7,0), (0,n-7)]
-    for y, row in enumerate(matrix):
-        for x, dark in enumerate(row):
-            if not dark or any(ex <= x < ex+7 and ey <= y < ey+7 for ex,ey in eyes): continue
-            if logo is not None and clear_left <= x < clear_right and clear_top <= y < clear_bottom: continue
-            inset = .12 if args.module_shape == 'tile' else 0
-            side = 1 - 2 * inset
-            radius = {'square':0, 'tile':.16, 'circle':.5}[args.module_shape]
-            rect(x+inset,y+inset,side,side,radius,args.color)
-    # Finder patterns contain a 7×7 outer frame, a background-coloured ring and a 3×3 centre.
-    # Clear the ring so transparent backgrounds remain transparent.
-    for index,(x,y) in enumerate(eyes):
-        start = len(parts)
-        radius = 0 if args.eye_shape == 'square' else 1.5
-        rect(x,y,7,7,radius,args.color)
-        rect(x+1,y+1,5,5,0 if radius == 0 else .8,args.background)
-        rect(x+2,y+2,3,3,0 if radius == 0 else .6,args.color)
-        outer, _, centre = parts[start:]
-        del parts[start:]
-        inner_radius = 0 if radius == 0 else .8
-        parts.append(f'<mask id="eye{index}"><rect width="{total}" height="{total}" fill="white"/><rect x="{x+1+args.margin}" y="{y+1+args.margin}" width="5" height="5" rx="{inner_radius}" fill="black"/></mask><g mask="url(#eye{index})">{outer}</g>{centre}')
-    if logo is not None:
-        x, y = logo_x, logo_y
-        image.alpha_composite(logo, (round(offset+(x+args.margin)*px), round(offset+(y+args.margin)*px)))
-        data = io.BytesIO(); logo.save(data, format='PNG')
-        encoded = base64.b64encode(data.getvalue()).decode('ascii')
-        parts.append(f'<image x="{x+args.margin:g}" y="{y+args.margin:g}" width="{lw:g}" height="{lh:g}" href="data:image/png;base64,{encoded}"/>')
-    parts.append('</svg>')
+    settings = QRSettings(**{field: getattr(args, field) for field in QRSettings.__dataclass_fields__ if field != 'logo'}, logo=logo)
     try:
+        rendered = render_qr(settings, out.suffix.lower()[1:])
         out.parent.mkdir(parents=True, exist_ok=True)
-        if out.suffix.lower() == '.svg':
-            out.write_text('\n'.join(parts)+'\n', encoding='utf-8')
-        else:
-            if supersample != 1: image = image.resize((args.size,args.size), Image.Resampling.BOX)
-            image.save(out, 'PNG')
+        out.write_bytes(rendered.data)
+    except ValueError as exc:
+        p.error(str(exc))
     except OSError as exc:
         p.error(f'无法写入文件: {exc}')
     if args.verify:
@@ -149,7 +193,7 @@ def main():
             print('验证失败：macOS Vision 未能读出完全一致的内容；文件已保留，请调整参数。', file=sys.stderr)
             return 1
         print('已验证：macOS Vision 解码内容一致。')
-    print(f'已生成 {out.resolve()}（版本 {qr.version}，{n}×{n}，容错 {args.error_correction}）')
+    print(f'已生成 {out.resolve()}（版本 {rendered.version}，{rendered.modules}×{rendered.modules}，容错 {args.error_correction}）')
     if args.margin < 4: print('提示：边距低于 4 个码点可能影响扫描。', file=sys.stderr)
     if args.logo and args.error_correction not in ('Q','H'): print('提示：带 Logo 建议使用较高容错等级 H，并实际扫码验证。', file=sys.stderr)
 

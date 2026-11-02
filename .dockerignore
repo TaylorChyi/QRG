@@ -1,0 +1,11 @@
+*
+!requirements.txt
+!requirements-web.txt
+!qrg.py
+!qrg_web.py
+!web/
+!web/**
+!assets/
+!assets/icon.png
+!script/
+!script/serve-web

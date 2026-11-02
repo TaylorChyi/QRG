@@ -9,3 +9,13 @@ name = "Mac · 打开 QRG"
 icon = "run"
 command = "./script/run-gui"
 platform = "darwin"
+
+[[actions]]
+name = "Web · 调测 QRG"
+icon = "run"
+command = "./script/run-web"
+
+[[actions]]
+name = "Web · 自动测试"
+icon = "run"
+command = "./script/test-web"

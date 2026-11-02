@@ -2,7 +2,54 @@
 
 # QRG
 
-macOS 本地二维码工具。输入链接或文字，输出 PNG 或 SVG。生成过程在本机完成，内容不会发送到二维码服务。
+二维码工具，提供命令行、macOS 应用和可自部署的 Web 界面。输入链接或文字，输出 PNG 或 SVG。命令行和 macOS 应用在本机生成；Web 版在运行 QRG 的服务器生成，不调用第三方二维码服务。
+
+## Web 版与调测 Action
+
+需要 Python 3.10 或更高版本。macOS、Linux 上在项目目录运行：
+
+```sh
+./script/run-web
+```
+
+首次运行会创建 `.venv` 并安装 `requirements-web.txt` 的依赖，之后无需联网安装。打开 [http://127.0.0.1:8000](http://127.0.0.1:8000)。在 Codex 项目的 Actions 中也可以选择「Web · 调测 QRG」；「Web · 自动测试」运行 Web 接口测试。调测服务监听本机，修改 Python 文件会自动重载，修改 HTML/CSS/JS 后刷新页面即可看到更新，按 Ctrl+C 停止。端口冲突时使用 `PORT=8001 ./script/run-web`。
+
+Web 界面提供自动预览、撤销/重做、码色和背景色、透明背景、码点和码眼形状、容错等级、版本、尺寸、Logo，以及 PNG/SVG 下载。适配窄屏，支持浅色、深色和跟随系统。PNG 下载使用当前预览对应的图片；修改设置后须等待新预览成功才能导出。
+
+链接、文字和 Logo 会发送到当前 QRG 服务器，应用不会将这些内容写入文件、数据库或浏览器持久存储，也不会在应用日志中记录请求正文。反向代理或托管环境的日志策略由部署者管理。Web 版不执行 macOS Vision 自动解码，请用目标设备扫码确认。
+
+为限制服务器资源占用，Web 输出尺寸为 64–4096 像素，边距为 0–32 个码点；Logo 接受 PNG/JPEG/WebP，文件最多 2 MiB，宽高各不超过 4096 像素；请求最多 3 MiB。内容最多 8192 个 UTF-8 字节，实际二维码容量仍受版本和容错等级限制。SVG 导出不分配整张位图画布，PNG 抗锯齿画布的单边上限为 4096 像素。
+
+### 后续服务器部署
+
+不需要 Node.js 或前端构建。仓库已提供 Gunicorn 入口、Dockerfile、Compose 和健康检查 `/healthz`。Linux 服务器可以运行：
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-web.txt
+./script/serve-web
+```
+
+生产入口默认监听 `127.0.0.1:8000`，使用两个 worker。可通过 `HOST`、`PORT` 和 `WEB_CONCURRENCY` 调整，例如 `HOST=0.0.0.0 PORT=8080 WEB_CONCURRENCY=2 ./script/serve-web`。将其交给 systemd 等进程管理器常驻运行，外部访问通过反向代理提供 HTTPS。调测入口 `run-web` 仅用于开发。入口遵循 [Flask 的 Gunicorn 部署方式](https://flask.palletsprojects.com/en/stable/deploying/gunicorn/)；项目 Actions 的用途见 [OpenAI 官方说明](https://learn.chatgpt.com/docs/environments/local-environment)。
+
+也可在装有 Docker Compose 的服务器运行：
+
+```sh
+docker compose up -d --build
+docker compose logs -f qrg
+curl --fail http://127.0.0.1:8000/healthz
+```
+
+Compose 默认只把容器端口映射到服务器的回环地址，以便由同机反向代理转发。容器以非 root 用户运行、根文件系统只读，无持久卷；重新构建后不需要数据迁移。当前没有登录或账户体系，访问范围、速率限制和 HTTPS 可在反向代理配置。反向代理请求上限应至少为 3 MiB，转发页面、`/static/`、`/icon.png`、`/api/render` 和 `/healthz` 到同一应用，建议在独立域名的根路径部署。此改动只准备部署材料，不会自动部署服务器。
+
+Web 测试可独立运行，或连同现有 CLI 测试运行：
+
+```sh
+./script/test-web
+.venv/bin/python -m unittest discover -s tests -v
+```
+
+Web 接口测试在 macOS、Linux 均可运行；其中 macOS Vision 的真实解码用例只在 macOS 执行。
 
 ## 使用
 
@@ -12,7 +59,7 @@ macOS 本地二维码工具。输入链接或文字，输出 PNG 或 SVG。生�
 ./qrg 'https://example.com' -o ~/Desktop/二维码.png
 ```
 
-需要 macOS、Python 3 和 `python3 -m venv`。`./qrg` 首次运行会创建 `.venv`，并通过 pip 安装 `requirements.txt` 中锁定版本的依赖；完成后可离线生成。若希望自行安装依赖，可运行 `python3 -m venv .venv` 和 `.venv/bin/python -m pip install -r requirements.txt`。查看全部参数：
+需要 macOS、Python 3.10 或更高版本和 `python3 -m venv`。`./qrg` 首次运行会创建 `.venv`，并通过 pip 安装 `requirements.txt` 中锁定版本的依赖；完成后可离线生成。若希望自行安装依赖，可运行 `python3 -m venv .venv` 和 `.venv/bin/python -m pip install -r requirements.txt`。查看全部参数：
 
 ```sh
 ./qrg --help

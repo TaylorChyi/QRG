@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "$#" -ne 0 ]; then
+  echo "用法：$0（可通过 HOST、PORT 配置监听地址）" >&2
+  exit 2
+fi
+"$ROOT/script/setup-web"
+cd "$ROOT"
+export QRG_TEMPLATE_AUTO_RELOAD=1
+echo "QRG Web：http://${HOST:-127.0.0.1}:${PORT:-8000}（Ctrl+C 停止）"
+# Reload code during local work; never enable the interactive debugger.
+exec "$ROOT/.venv/bin/python" -m flask --app qrg_web run --reload --no-debugger --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}"

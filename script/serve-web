@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$ROOT"
+PYTHON="$ROOT/.venv/bin/python"
+if [ ! -x "$PYTHON" ]; then PYTHON=python3; fi
+exec "$PYTHON" -m gunicorn --bind "${HOST:-127.0.0.1}:${PORT:-8000}" --workers "${WEB_CONCURRENCY:-2}" --timeout 60 --no-control-socket --access-logfile - --error-logfile - qrg_web:app

@@ -21,6 +21,7 @@ class QRTests(unittest.TestCase):
     def run_qrg(self, *args):
         return subprocess.run([sys.executable, str(ROOT/'qrg.py'), *map(str, args)], capture_output=True, text=True)
 
+    @unittest.skipUnless(sys.platform == 'darwin', 'macOS Vision 解码校验仅在 macOS 上可用')
     def test_png_decodes_with_logo(self):
         out = self.folder/'out.png'
         result = self.run_qrg(URL, '-o', out, '--size', 400, '--version', 5, '--margin', 3,
