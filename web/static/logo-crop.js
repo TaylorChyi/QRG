@@ -12,6 +12,7 @@
   let token = 0;
   let returnFocus = null;
   const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+  const t = (source, values) => window.QRGI18n?.t(source, values) || source;
 
   function paint() {
     if (!draft) return;
@@ -56,7 +57,7 @@
       field.setAttribute('aria-invalid', 'false');
     }
     apply.disabled = false;
-    $('crop-selection-size').textContent = `选区 ${crop.width} × ${crop.height} 像素`;
+    $('crop-selection-size').textContent = t('选区 {width} × {height} 像素', { width: crop.width, height: crop.height });
     window.QRGControls?.sync();
     paint();
   }
@@ -78,7 +79,7 @@
     image.src = options.source;
     await image.decode();
     if (current !== token) return;
-    if (Math.max(image.naturalWidth, image.naturalHeight) > 4096) throw new Error('Logo 图片宽高不能超过 4096 像素。');
+    if (Math.max(image.naturalWidth, image.naturalHeight) > 4096) throw new Error(t('Logo 图片宽高不能超过 4096 像素。'));
     const scale = 1120 / Math.max(image.naturalWidth, image.naturalHeight);
     canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
     canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -191,5 +192,8 @@
   });
   window.addEventListener('resize', paint);
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', paint);
+  document.addEventListener('qrg:languagechange', () => {
+    if (draft) sync();
+  });
   window.QRGLogoCrop = { open, close };
 })();

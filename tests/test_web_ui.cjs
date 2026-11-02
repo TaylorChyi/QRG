@@ -47,7 +47,7 @@ async function geometry(page) {
 
 async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: browserPath,  });
-  const context = await browser.newContext({ acceptDownloads: true });
+  const context = await browser.newContext({ locale: 'zh-CN', acceptDownloads: true });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));

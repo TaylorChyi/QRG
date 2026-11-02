@@ -74,6 +74,18 @@ QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node 
 
 默认访问 `http://127.0.0.1:8000`，并使用 macOS 的 Google Chrome；其它地址或浏览器路径通过 `BASE_URL`、`BROWSER_EXECUTABLE_PATH` 指定。
 
+## 多语言
+
+Web 支持简体中文、繁體中文、English、日本語、한국어、Español、Français 和 Deutsch，覆盖编辑、裁剪、颜色控件、无障碍标签和错误提示。右上角可选择语言，选择会保存在此浏览器一年；切换时保留当前二维码内容、样式和撤销记录。「跟随浏览器」恢复自动识别；不支持的语言回退为简体中文。浅色、深色和系统外观均可使用。
+
+命令行可用 `./qrg --lang en --help` 查看对应语言帮助，也可在生成命令中加入 `--lang ja`；未指定时依次读取 `LC_ALL`、`LC_MESSAGES`、`LANG`。参数名和枚举值保持一致。Web 接口通过 `?lang=en`、`qrg-language` Cookie、`Accept-Language` 请求头依次选择语言；`?lang=auto` 按浏览器请求头重新识别。`GET /api/i18n?lang=en` 返回对应词库，响应中的 `Content-Language` 标明实际语言。
+
+翻译保存在 `locales/*.json`，以简体中文源文案为键；测试会检查完整覆盖和动态占位符一致性。多语言浏览器回归使用与其它 UI 测试相同的依赖：
+
+```sh
+QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_i18n_ui.cjs
+```
+
 ## 使用
 
 克隆仓库后，在项目目录中运行：

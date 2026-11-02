@@ -1,0 +1,15 @@
+.topbar-controls { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.language-control { padding-inline: 8px; }
+.language-control .qrg-select-text { max-width: 110px; }
+.field label, .section-heading { overflow-wrap: anywhere; }
+.logo-picker, .logo-actions { flex-wrap: wrap; }
+.download-actions button { overflow-wrap: anywhere; }
+
+@media (max-width: 480px) {
+  .topbar-controls { gap: 5px; }
+  .topbar-controls .theme-control { padding-inline: 5px; }
+  .language-control .qrg-select-text { max-width: 66px; }
+  .topbar-controls .theme-control > .icon { display: none; }
+  .topbar-controls .theme-control:not(.language-control) .qrg-select-text { max-width: 86px; }
+  .workspace-views button { overflow-wrap: anywhere; }
+}

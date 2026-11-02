@@ -110,13 +110,13 @@ async function latestPayload(requests) {
 
 async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: browserPath });
-  const context = await browser.newContext({ acceptDownloads: true });
+  const context = await browser.newContext({ locale: 'zh-CN', acceptDownloads: true });
   const page = await context.newPage();
   const requests = [];
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => {
-    if (request.url().endsWith('/api/render') && request.method() === 'POST') {
+    if (new URL(request.url()).pathname === '/api/render' && request.method() === 'POST') {
       requests.push(request.postDataJSON());
     }
   });
@@ -253,7 +253,7 @@ async function main() {
       reset.logo_crop.width === 32 && reset.logo_crop.height === 16), `reset did not restore full image: ${JSON.stringify(reset.logo_crop)}`);
 
     await page.locator('#download-png').waitFor({ state: 'visible' });
-    const svgRequest = page.waitForRequest(request => request.url().endsWith('/api/render') && request.postDataJSON()?.format === 'svg');
+    const svgRequest = page.waitForRequest(request => new URL(request.url()).pathname === '/api/render' && request.postDataJSON()?.format === 'svg');
     const download = page.waitForEvent('download');
     await page.locator('#download-svg').click();
     assert.deepEqual((await svgRequest).postDataJSON().logo_crop, reset.logo_crop);

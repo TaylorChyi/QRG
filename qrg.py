@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import qrcode
 from PIL import Image, ImageChops, ImageColor, ImageDraw
 from qrcode.exceptions import DataOverflowError
+from qrg_i18n import environment_locale, resolve_locale, set_locale, t
 
 LEVELS = {'L': qrcode.constants.ERROR_CORRECT_L, 'M': qrcode.constants.ERROR_CORRECT_M,
           'Q': qrcode.constants.ERROR_CORRECT_Q, 'H': qrcode.constants.ERROR_CORRECT_H}
@@ -23,7 +24,7 @@ def color(value):
     try:
         return ImageColor.getcolor(value, 'RGBA')
     except ValueError as exc:
-        raise argparse.ArgumentTypeError(f'无效颜色: {value}') from exc
+        raise argparse.ArgumentTypeError(t('无效颜色: {value}', value=value)) from exc
 
 def positive(value):
     try:
@@ -31,7 +32,7 @@ def positive(value):
         if n < 0: raise ValueError()
         return n
     except ValueError as exc:
-        raise argparse.ArgumentTypeError('请输入非负整数') from exc
+        raise argparse.ArgumentTypeError(t('请输入非负整数')) from exc
 
 def svg_color(c):
     return f'#{c[0]:02x}{c[1]:02x}{c[2]:02x}', c[3] / 255
@@ -58,7 +59,7 @@ class QRSettings:
 class LogoSizeError(ValueError):
     def __init__(self, max_modules):
         self.max_modules = max_modules
-        super().__init__(f'当前二维码的 Logo 最多为 {max_modules} 个码点；请缩小 Logo 或增加二维码版本')
+        super().__init__(t('当前二维码的 Logo 最多为 {max_modules} 个码点；请缩小 Logo 或增加二维码版本', max_modules=max_modules))
 
 
 @dataclass(frozen=True)
@@ -86,7 +87,7 @@ def logo_clearance(clearance, version, modules, padding_modules=None, padding_pi
                 continue
             patterns.append((cx-2, cy-2, cx+3, cy+3))
     if any(left < x1 and right > x0 and top < y1 and bottom > y0 for x0, y0, x1, y1 in patterns):
-        raise ValueError('Logo 留白与二维码的定位结构重叠；请减小 Logo 或更换版本')
+        raise ValueError(t('Logo 留白与二维码的定位结构重叠；请减小 Logo 或更换版本'))
     return left, top, right, bottom
 
 
@@ -114,24 +115,24 @@ def logo_options(version, modules):
 def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     """Render in memory for both the CLI and web app; no filesystem or subprocesses."""
     if output_format not in ('png', 'svg'):
-        raise ValueError('输出格式必须为 PNG 或 SVG')
+        raise ValueError(t('输出格式必须为 PNG 或 SVG'))
     if args.image_shape not in ('square', 'rounded'):
-        raise ValueError('图片外角必须为直角或圆角')
+        raise ValueError(t('图片外角必须为直角或圆角'))
     if args.logo_padding_modules is not None:
         if type(args.logo_padding_modules) is not int or not 0 <= args.logo_padding_modules <= 8:
-            raise ValueError('logo_padding_modules 必须为 0–8 之间的整数')
+            raise ValueError(t('logo_padding_modules 必须为 0–8 之间的整数'))
         if args.logo_padding_px is not None:
-            raise ValueError('Logo 留白只能选择像素或码点其中一种单位')
+            raise ValueError(t('Logo 留白只能选择像素或码点其中一种单位'))
     qr = qrcode.QRCode(version=args.version, error_correction=LEVELS[args.error_correction], box_size=1, border=0)
     qr.add_data(args.content)
     try:
         qr.make(fit=args.version is None)
     except DataOverflowError:
-        raise ValueError('内容无法放入指定版本和容错等级；请选择更大的版本或自动版本') from None
+        raise ValueError(t('内容无法放入指定版本和容错等级；请选择更大的版本或自动版本')) from None
     matrix = qr.get_matrix(); n = len(matrix); total = n + 2 * args.margin
     if args.logo_modules is not None and args.logo_modules > n // 4:
         raise LogoSizeError(n // 4)
-    if args.size < total: raise ValueError(f'输出尺寸至少需要 {total} 像素，以容纳每个码点')
+    if args.size < total: raise ValueError(t('输出尺寸至少需要 {total} 像素，以容纳每个码点', total=total))
     fg, fa = svg_color(args.color); bg, ba = svg_color(args.background)
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{args.size}" height="{args.size}" viewBox="0 0 {total} {total}">',
              f'<rect width="{total}" height="{total}" fill="{bg}" fill-opacity="{ba}"/>']
@@ -238,38 +239,45 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     return RenderResult(data, qr.version, n, image_corner_radius)
 
 def main():
-    p = argparse.ArgumentParser(description='生成可自定义样式的二维码（PNG 或 SVG）')
-    p.add_argument('content', help='链接或其他二维码内容')
-    p.add_argument('-o', '--output', required=True, help='输出文件，扩展名为 .png 或 .svg')
-    p.add_argument('--color', type=color, default=color('#000000'), help='码颜色，如 #123456（默认黑色）')
-    p.add_argument('--background', type=color, default=color('#ffffff'), help='背景颜色，或 transparent（默认白色）')
-    p.add_argument('--module-shape', choices=['square', 'tile', 'circle'], default='square', help='码点形状：方形、圆角瓷砖、圆形')
-    p.add_argument('--eye-shape', choices=['square', 'rounded'], default='square', help='码眼形状：方形或中圆角')
-    p.add_argument('--image-shape', choices=['square', 'rounded'], default='square', help='整张图片外角：直角或圆角')
-    p.add_argument('--margin', type=positive, default=4, help='边距，单位为码点（默认 4）')
-    p.add_argument('--error-correction', choices=['L','M','Q','H'], type=str.upper, default='M', help='容错等级 L/M/Q/H（默认 M）')
-    p.add_argument('--version', type=int, choices=range(1, 41), help='二维码版本 1–40，边长为 17 + 4 × 版本；默认自动选择')
-    p.add_argument('--size', type=int, default=1024, help='输出宽高像素（默认 1024）')
-    p.add_argument('--verify', action='store_true', help='用 macOS Vision 校验生成的 PNG 可解码且内容一致')
-    p.add_argument('--logo', type=Path, help='中心 Logo 图片路径（PNG、JPEG 等 Pillow 支持的格式）')
-    p.add_argument('--logo-padding-px', type=positive, help='Logo 最小留白，单位为输出像素；实际边界按完整码点向外取整')
-    p.add_argument('--logo-scale', type=float, default=0.20, help='Logo 最大宽度占二维码本体边长比例（默认 0.20，最大 0.25）')
-    p.add_argument('--logo-modules', type=int, help='Logo 最大边长占用的码点数（1–44，且不超过当前二维码本体边长的四分之一）')
+    locale_probe = argparse.ArgumentParser(add_help=False)
+    locale_probe.add_argument('--lang')
+    requested_locale, _ = locale_probe.parse_known_args()
+    set_locale(resolve_locale(requested_locale.lang) or environment_locale())
+    p = argparse.ArgumentParser(description=t('生成可自定义样式的二维码（PNG 或 SVG）'))
+    p.add_argument('--lang', metavar='LANG', help=t('界面语言：zh-CN、zh-TW、en、ja、ko、es、fr、de'))
+    p.add_argument('content', help=t('链接或其他二维码内容'))
+    p.add_argument('-o', '--output', required=True, help=t('输出文件，扩展名为 .png 或 .svg'))
+    p.add_argument('--color', type=color, default=color('#000000'), help=t('码颜色，如 #123456（默认黑色）'))
+    p.add_argument('--background', type=color, default=color('#ffffff'), help=t('背景颜色，或 transparent（默认白色）'))
+    p.add_argument('--module-shape', choices=['square', 'tile', 'circle'], default='square', help=t('码点形状：方形、圆角瓷砖、圆形'))
+    p.add_argument('--eye-shape', choices=['square', 'rounded'], default='square', help=t('码眼形状：方形或中圆角'))
+    p.add_argument('--image-shape', choices=['square', 'rounded'], default='square', help=t('整张图片外角：直角或圆角'))
+    p.add_argument('--margin', type=positive, default=4, help=t('边距，单位为码点（默认 4）'))
+    p.add_argument('--error-correction', choices=['L','M','Q','H'], type=str.upper, default='M', help=t('容错等级 L/M/Q/H（默认 M）'))
+    p.add_argument('--version', type=int, choices=range(1, 41), help=t('二维码版本 1–40，边长为 17 + 4 × 版本；默认自动选择'))
+    p.add_argument('--size', type=int, default=1024, help=t('输出宽高像素（默认 1024）'))
+    p.add_argument('--verify', action='store_true', help=t('用 macOS Vision 校验生成的 PNG 可解码且内容一致'))
+    p.add_argument('--logo', type=Path, help=t('中心 Logo 图片路径（PNG、JPEG 等 Pillow 支持的格式）'))
+    p.add_argument('--logo-padding-px', type=positive, help=t('Logo 最小留白，单位为输出像素；实际边界按完整码点向外取整'))
+    p.add_argument('--logo-scale', type=float, default=0.20, help=t('Logo 最大宽度占二维码本体边长比例（默认 0.20，最大 0.25）'))
+    p.add_argument('--logo-modules', type=int, help=t('Logo 最大边长占用的码点数（1–44，且不超过当前二维码本体边长的四分之一）'))
     args = p.parse_args()
+    if args.lang and not resolve_locale(args.lang):
+        p.error(t('不支持的语言：{lang}', lang=args.lang))
     out = Path(args.output).expanduser()
-    if out.suffix.lower() not in ('.png', '.svg'): p.error('输出文件扩展名必须为 .png 或 .svg')
-    if args.verify and out.suffix.lower() != '.png': p.error('--verify 仅支持 PNG')
-    if args.size < 64 or args.size > 16384: p.error('--size 必须在 64–16384 之间')
-    if not 0 < args.logo_scale <= .25: p.error('--logo-scale 必须大于 0 且不超过 0.25')
-    if args.logo_modules is not None and not 1 <= args.logo_modules <= 44: p.error('--logo-modules 必须为 1–44 之间的整数')
-    if args.color[3] == 0: p.error('码颜色不能完全透明')
+    if out.suffix.lower() not in ('.png', '.svg'): p.error(t('输出文件扩展名必须为 .png 或 .svg'))
+    if args.verify and out.suffix.lower() != '.png': p.error(t('--verify 仅支持 PNG'))
+    if args.size < 64 or args.size > 16384: p.error(t('--size 必须在 64–16384 之间'))
+    if not 0 < args.logo_scale <= .25: p.error(t('--logo-scale 必须大于 0 且不超过 0.25'))
+    if args.logo_modules is not None and not 1 <= args.logo_modules <= 44: p.error(t('--logo-modules 必须为 1–44 之间的整数'))
+    if args.color[3] == 0: p.error(t('码颜色不能完全透明'))
     logo = None
     if args.logo:
         try:
             with Image.open(args.logo.expanduser()) as source:
                 logo = source.convert('RGBA')
         except (OSError, ValueError) as exc:
-            p.error(f'无法读取 Logo: {exc}')
+            p.error(t('无法读取 Logo: {error}', error=exc))
     settings = QRSettings(**{field: getattr(args, field) for field in QRSettings.__dataclass_fields__
                              if field not in ('logo', 'logo_padding_modules')}, logo=logo)
     try:
@@ -279,16 +287,18 @@ def main():
     except ValueError as exc:
         p.error(str(exc))
     except OSError as exc:
-        p.error(f'无法写入文件: {exc}')
+        p.error(t('无法写入文件: {error}', error=exc))
     if args.verify:
         verifier = Path(__file__).resolve().with_name('verify.swift')
         result = subprocess.run(['/usr/bin/swift', str(verifier), str(out)], capture_output=True, text=True)
         if result.returncode != 0 or result.stdout.removesuffix('\n') != args.content:
-            print('验证失败：macOS Vision 未能读出完全一致的内容；文件已保留，请调整参数。', file=sys.stderr)
+            print(t('验证失败：macOS Vision 未能读出完全一致的内容；文件已保留，请调整参数。'), file=sys.stderr)
             return 1
-        print('已验证：macOS Vision 解码内容一致。')
-    print(f'已生成 {out.resolve()}（版本 {rendered.version}，{rendered.modules}×{rendered.modules}，容错 {args.error_correction}）')
-    if args.margin < 4: print('提示：边距低于 4 个码点可能影响扫描。', file=sys.stderr)
-    if args.logo and args.error_correction not in ('Q','H'): print('提示：带 Logo 建议使用较高容错等级 H，并实际扫码验证。', file=sys.stderr)
+        print(t('已验证：macOS Vision 解码内容一致。'))
+    print(t('已生成 {path}（版本 {version}，{modules}×{modules}，容错 {error_correction}）',
+            path=out.resolve(), version=rendered.version, modules=rendered.modules,
+            error_correction=args.error_correction))
+    if args.margin < 4: print(t('提示：边距低于 4 个码点可能影响扫描。'), file=sys.stderr)
+    if args.logo and args.error_correction not in ('Q','H'): print(t('提示：带 Logo 建议使用较高容错等级 H，并实际扫码验证。'), file=sys.stderr)
 
 if __name__ == '__main__': sys.exit(main())

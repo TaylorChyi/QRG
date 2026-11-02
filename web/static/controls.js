@@ -3,6 +3,7 @@
 
   const enhanced = [];
   let openPanel = null;
+  const t = (source, values) => window.QRGI18n?.t(source, values) || source;
 
   function closePanel() {
     if (!openPanel) return;
@@ -131,7 +132,7 @@
     select.setAttribute('aria-hidden', 'true');
     const sync = () => {
       selectContent(caption, select, select.selectedOptions[0]);
-      trigger.setAttribute('aria-label', `${labelText(select)}：${caption.textContent}`);
+      trigger.setAttribute('aria-label', t('{label}：{value}', { label: labelText(select), value: caption.textContent }));
       trigger.disabled = select.disabled;
     };
     let activeIndex = Math.max(0, select.selectedIndex);
@@ -257,8 +258,8 @@
     const sync = () => {
       swatch.classList.toggle('qrg-transparent-swatch', Boolean(transparent?.checked));
       swatch.style.backgroundColor = transparent?.checked ? '' : input.value;
-      value.textContent = transparent?.checked ? '透明' : input.value.toUpperCase();
-      trigger.setAttribute('aria-label', `${labelText(input)}：${value.textContent}`);
+      value.textContent = transparent?.checked ? t('透明') : input.value.toUpperCase();
+      trigger.setAttribute('aria-label', t('{label}：{value}', { label: labelText(input), value: value.textContent }));
       trigger.disabled = input.disabled;
       if (input.disabled && openPanel?.trigger === trigger) closePanel();
     };
@@ -271,13 +272,14 @@
       panel.className = 'qrg-popup qrg-colour-popup';
       panel.setAttribute('role', 'dialog');
       panel.setAttribute('aria-modal', 'true');
-      panel.setAttribute('aria-label', `${labelText(input)}颜色`);
+      panel.setAttribute('aria-label', t('{label}选择器', { label: labelText(input) }));
       if (transparent) {
         const option = document.createElement('button');
         option.type = 'button';
         option.className = 'qrg-option qrg-transparent-option';
         option.setAttribute('aria-pressed', String(transparent.checked));
-        option.innerHTML = '<span class="qrg-colour-swatch qrg-transparent-swatch" aria-hidden="true"></span><span>透明背景</span>';
+        option.innerHTML = '<span class="qrg-colour-swatch qrg-transparent-swatch" aria-hidden="true"></span><span></span>';
+        option.lastElementChild.textContent = t('透明背景');
         option.addEventListener('click', () => {
           transparent.checked = true;
           transparent.dispatchEvent(new Event('change', { bubbles: true }));
@@ -290,7 +292,8 @@
       let pendingColour = input.value.toUpperCase();
       const preview = document.createElement('div');
       preview.className = 'qrg-colour-preview';
-      preview.innerHTML = '<span aria-hidden="true"></span><strong>自定义颜色</strong>';
+      preview.innerHTML = '<span aria-hidden="true"></span><strong></strong>';
+      preview.lastElementChild.textContent = t('自定义颜色');
       preview.firstElementChild.style.background = pendingColour;
       const grid = document.createElement('div');
       grid.className = 'qrg-palette';
@@ -316,13 +319,13 @@
         const row = document.createElement('label');
         row.className = 'qrg-rgb-row';
         const title = document.createElement('span');
-        title.textContent = name;
+        title.textContent = t(name);
         const slider = document.createElement('input');
         slider.type = 'range';
         slider.min = '0';
         slider.max = '255';
         slider.step = '1';
-        slider.setAttribute('aria-label', `${labelText(input)}${name}通道`);
+        slider.setAttribute('aria-label', t('{label}{channel}通道', { label: labelText(input), channel: t(name) }));
         const amount = document.createElement('output');
         amount.setAttribute('aria-live', 'off');
         row.append(title, slider, amount);
@@ -331,25 +334,25 @@
       }
       const label = document.createElement('label');
       label.className = 'qrg-hex-label';
-      label.textContent = '十六进制颜色';
+      label.textContent = t('十六进制颜色');
       const hex = document.createElement('input');
       hex.type = 'text';
       hex.className = 'qrg-hex-input';
       hex.inputMode = 'text';
       hex.maxLength = 7;
       hex.value = input.value.toUpperCase();
-      hex.setAttribute('aria-label', `${labelText(input)}十六进制颜色`);
+      hex.setAttribute('aria-label', t('{label}十六进制颜色', { label: labelText(input) }));
       const error = document.createElement('span');
       error.className = 'qrg-hex-error';
       error.id = `qrg-${input.id}-hex-error`;
-      error.textContent = '请输入 6 位十六进制颜色，例如 #5145CD。';
+      error.textContent = t('请输入 6 位十六进制颜色，例如 #5145CD。');
       error.hidden = true;
       hex.setAttribute('aria-describedby', error.id);
       label.append(hex);
       const apply = document.createElement('button');
       apply.type = 'button';
       apply.className = 'qrg-hex-apply';
-      apply.textContent = '应用颜色';
+      apply.textContent = t('应用颜色');
       function setError(invalid) {
         hex.setAttribute('aria-invalid', String(invalid));
         error.hidden = !invalid;
@@ -416,7 +419,9 @@
       button.type = 'button';
       button.className = 'qrg-stepper';
       button.textContent = symbol;
-      button.setAttribute('aria-label', `${labelText(input)}${label}`);
+      const updateLabel = () => button.setAttribute('aria-label', t('{label}：{action}', { label: labelText(input), action: t(label) }));
+      updateLabel();
+      enhanced.push(updateLabel);
       button.addEventListener('click', () => {
         if (input.disabled) return;
         const current = Number(input.value);
@@ -459,6 +464,10 @@
     });
     window.addEventListener('resize', placePanel);
     document.addEventListener('scroll', placePanel, true);
+    document.addEventListener('qrg:languagechange', () => {
+      closePanel();
+      enhanced.forEach(update => update());
+    });
   }
 
   window.QRGControls = { init, sync: () => enhanced.forEach(update => update()), close: closePanel };

@@ -11,21 +11,25 @@
   {% elif name == 'minus' %}<path d="M5 12h14"/>
   {% elif name == 'plus' %}<path d="M5 12h14m-7-7v14"/>
   {% elif name == 'screen' %}<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>
+  {% elif name == 'language' %}<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>
   {% elif name == 'qr' %}<rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M15 15h3v3h3m-6 3h3m3-6v-3M3 12h3m6-9v3m0 6h3m-3 6v3"/>
   {% endif %}
 </svg>
 {%- endmacro %}
 <!doctype html>
-<html lang="zh-CN">
+<html lang="{{ locale }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="在浏览器中制作和导出可定制的二维码。">
+  <meta name="description" content="{{ t("在浏览器中制作和导出可定制的二维码。") }}" data-i18n-content="在浏览器中制作和导出可定制的二维码。">
   <title>QRG</title>
   <link rel="icon" type="image/png" href="{{ url_for('icon') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='controls.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='i18n.css') }}">
+  <script id="i18n-catalogue" type="application/json">{{ messages|tojson }}</script>
+  <script src="{{ url_for('static', filename='i18n.js') }}" defer></script>
   <script src="{{ url_for('static', filename='controls.js') }}" defer></script>
   <script src="{{ url_for('static', filename='logo-crop.js') }}" defer></script>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
@@ -37,96 +41,99 @@
         <img class="brand-icon" src="{{ url_for('icon') }}" alt="" width="34" height="34">
         <span class="brand-name">QRG<span class="brand-period">.</span></span>
       </div>
-      <div class="theme-control">{{ icon('screen') }}<span class="visually-hidden">界面外观</span><select id="theme" aria-label="界面外观"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></div>
+      <div class="topbar-controls">
+      <div class="theme-control language-control">{{ icon('language') }}<label for="language" class="visually-hidden" data-i18n="语言">{{ t('语言') }}</label>{% set preference = request.args.get('lang') or request.cookies.get('qrg-language', 'auto') %}<select id="language" aria-label="{{ t('语言') }}" data-i18n-aria-label="语言"><option value="auto" data-i18n="跟随浏览器"{% if preference == 'auto' %} selected{% endif %}>{{ t('跟随浏览器') }}</option>{% for code, name in languages %}<option value="{{ code }}" lang="{{ code }}"{% if preference != 'auto' and code == locale %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+      <div class="theme-control">{{ icon('screen') }}<span class="visually-hidden" data-i18n="界面外观">{{ t("界面外观") }}</span><select id="theme" aria-label="{{ t("界面外观") }}" data-i18n-aria-label="界面外观"><option value="system" data-i18n="跟随系统">{{ t("跟随系统") }}</option><option value="light" data-i18n="浅色">{{ t("浅色") }}</option><option value="dark" data-i18n="深色">{{ t("深色") }}</option></select></div>
+      </div>
     </header>
 
     <main class="main-content">
-      <h1 class="visually-hidden">二维码编辑器</h1>
+      <h1 class="visually-hidden" data-i18n="二维码编辑器">{{ t("二维码编辑器") }}</h1>
 
-      <div class="workspace-views" role="group" aria-label="工作区视图">
-        <button type="button" data-view="editor" aria-pressed="true" aria-controls="editor">{{ icon('style') }} 编辑二维码</button>
-        <button type="button" data-view="preview" aria-pressed="false" aria-controls="preview-pane">{{ icon('qr') }} 预览与导出</button>
+      <div class="workspace-views" role="group" aria-label="{{ t("工作区视图") }}" data-i18n-aria-label="工作区视图">
+        <button type="button" data-view="editor" aria-pressed="true" aria-controls="editor">{{ icon('style') }} <span data-i18n="编辑二维码">{{ t("编辑二维码") }}</span></button>
+        <button type="button" data-view="preview" aria-pressed="false" aria-controls="preview-pane">{{ icon('qr') }} <span data-i18n="预览与导出">{{ t("预览与导出") }}</span></button>
       </div>
       <div class="workspace" data-view="editor">
-        <section class="editor" id="editor" aria-label="二维码编辑器">
+        <section class="editor" id="editor" aria-label="{{ t("二维码编辑器") }}" data-i18n-aria-label="二维码编辑器">
           <form id="editor-form" novalidate>
             <div class="field content-field">
-              <div class="field-label"><label for="content">链接</label><button type="button" class="text-button field-action" id="open-link" title="在新标签页打开链接" disabled>{{ icon('external') }} 跳转</button></div>
+              <div class="field-label"><label for="content" data-i18n="链接">{{ t("链接") }}</label><button type="button" class="text-button field-action" id="open-link" title="{{ t("在新标签页打开链接") }}" data-i18n-title="在新标签页打开链接" disabled>{{ icon('external') }} <span data-i18n="跳转">{{ t("跳转") }}</span></button></div>
               <div class="content-input"><textarea id="content" rows="2" placeholder="https://example.com" spellcheck="false" maxlength="4096" aria-describedby="content-count"></textarea><output id="content-count" for="content">0 / 4096</output></div>
             </div>
-            <section class="field-section" aria-label="颜色">
+            <section class="field-section" aria-label="{{ t("颜色") }}" data-i18n-aria-label="颜色">
               <div class="field-grid">
-                <div class="field"><label for="color">码颜色</label><div class="colour-field"><input id="color" type="color" value="#000000"><output id="color-value" for="color">#000000</output></div></div>
-                <div class="field"><label for="background">背景颜色</label><div class="colour-field"><input id="background" type="color" value="#ffffff"><input id="transparent" type="checkbox" hidden><output id="background-value" for="background">#FFFFFF</output></div></div>
+                <div class="field"><label for="color" data-i18n="码颜色">{{ t("码颜色") }}</label><div class="colour-field"><input id="color" type="color" value="#000000"><output id="color-value" for="color">#000000</output></div></div>
+                <div class="field"><label for="background" data-i18n="背景颜色">{{ t("背景颜色") }}</label><div class="colour-field"><input id="background" type="color" value="#ffffff"><input id="transparent" type="checkbox" hidden><output id="background-value" for="background">#FFFFFF</output></div></div>
               </div>
             </section>
-            <section class="field-section" aria-label="形状">
+            <section class="field-section" aria-label="{{ t("形状") }}" data-i18n-aria-label="形状">
               <div class="field-grid">
-                <div class="field"><label for="module-shape">码点形状</label><select id="module-shape"><option value="square">方形</option><option value="tile" selected>圆角瓷砖</option><option value="circle">圆形</option></select></div>
-                <div class="field"><label for="eye-shape">码眼形状</label><select id="eye-shape"><option value="square">方形</option><option value="rounded" selected>中圆角</option></select></div>
+                <div class="field"><label for="module-shape" data-i18n="码点形状">{{ t("码点形状") }}</label><select id="module-shape"><option value="square" data-i18n="方形">{{ t("方形") }}</option><option value="tile" selected data-i18n="圆角瓷砖">{{ t("圆角瓷砖") }}</option><option value="circle" data-i18n="圆形">{{ t("圆形") }}</option></select></div>
+                <div class="field"><label for="eye-shape" data-i18n="码眼形状">{{ t("码眼形状") }}</label><select id="eye-shape"><option value="square" data-i18n="方形">{{ t("方形") }}</option><option value="rounded" selected data-i18n="中圆角">{{ t("中圆角") }}</option></select></div>
               </div>
             </section>
             <section class="field-section" aria-labelledby="logo-heading">
               <h2 id="logo-heading" class="section-heading">Logo</h2>
               <div class="logo-picker">
                 <input id="logo-file" type="file" accept="image/png,image/jpeg,image/webp" class="visually-hidden">
-                <label class="small-button upload-button" for="logo-file" title="PNG、JPEG 或 WebP，最大 2 MiB"><span id="logo-placeholder" aria-hidden="true">{{ icon('image') }}</span><span class="logo-thumb" id="logo-thumb" aria-hidden="true" hidden></span><span id="logo-name">选择图片</span></label>
-                <div class="logo-actions"><button type="button" class="text-button" id="edit-logo-crop" hidden>调整范围</button><button type="button" class="text-button" id="remove-logo" hidden>移除</button></div>
+                <label class="small-button upload-button" for="logo-file" title="{{ t("PNG、JPEG 或 WebP，最大 2 MiB") }}" data-i18n-title="PNG、JPEG 或 WebP，最大 2 MiB"><span id="logo-placeholder" aria-hidden="true">{{ icon('image') }}</span><span class="logo-thumb" id="logo-thumb" aria-hidden="true" hidden></span><span id="logo-name" data-i18n="选择图片">{{ t("选择图片") }}</span></label>
+                <div class="logo-actions"><button type="button" class="text-button" id="edit-logo-crop" hidden data-i18n="调整范围">{{ t("调整范围") }}</button><button type="button" class="text-button" id="remove-logo" hidden data-i18n="移除">{{ t("移除") }}</button></div>
               </div>
               <div class="field-grid logo-options" id="logo-options" hidden>
-                <div class="field"><label for="logo-modules">Logo 大小</label><select id="logo-modules" disabled><option value="5">5 × 5 格</option></select></div>
-                <div class="field"><label for="logo-padding-modules">周围留白（码点）</label><select id="logo-padding-modules" disabled><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option></select></div>
+                <div class="field"><label for="logo-modules" data-i18n="Logo 大小">{{ t("Logo 大小") }}</label><select id="logo-modules" disabled><option value="5" data-i18n="5 × 5 格">{{ t("5 × 5 格") }}</option></select></div>
+                <div class="field"><label for="logo-padding-modules" data-i18n="周围留白（码点）">{{ t("周围留白（码点）") }}</label><select id="logo-padding-modules" disabled><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option></select></div>
               </div>
             </section>
-            <section class="field-grid qr-settings" aria-label="二维码规格">
-                <div class="field"><label for="error-correction">容错等级</label><select id="error-correction"><option value="L">L · 低</option><option value="M">M · 中</option><option value="Q">Q · 高</option><option value="H" selected>H · 最高</option></select></div>
-                <div class="field"><label for="version">二维码版本</label><select id="version"><option value="auto">自动选择</option><option value="1">1 · 21 × 21</option><option value="3">3 · 29 × 29</option><option value="5">5 · 37 × 37</option><option value="10">10 · 57 × 57</option></select></div>
+            <section class="field-grid qr-settings" aria-label="{{ t("二维码规格") }}" data-i18n-aria-label="二维码规格">
+                <div class="field"><label for="error-correction" data-i18n="容错等级">{{ t("容错等级") }}</label><select id="error-correction"><option value="L" data-i18n="L · 低">{{ t("L · 低") }}</option><option value="M" data-i18n="M · 中">{{ t("M · 中") }}</option><option value="Q" data-i18n="Q · 高">{{ t("Q · 高") }}</option><option value="H" selected data-i18n="H · 最高">{{ t("H · 最高") }}</option></select></div>
+                <div class="field"><label for="version" data-i18n="二维码版本">{{ t("二维码版本") }}</label><select id="version"><option value="auto" data-i18n="自动选择">{{ t("自动选择") }}</option><option value="1">1 · 21 × 21</option><option value="3">3 · 29 × 29</option><option value="5">5 · 37 × 37</option><option value="10">10 · 57 × 57</option></select></div>
             </section>
           </form>
         </section>
 
-        <aside class="preview-pane" id="preview-pane" aria-label="预览与导出">
-          <div class="preview-toolbar"><button type="button" class="small-button decode-button" id="decode-qr" title="识别当前二维码，在新标签页打开识别出的链接" disabled>{{ icon('qr') }}<span>识别并跳转</span></button><div class="history-actions"><button type="button" class="icon-button" id="undo" data-tooltip="撤销上次修改" aria-label="撤销上次修改" disabled>{{ icon('undo') }}</button><button type="button" class="icon-button" id="redo" data-tooltip="重做已撤销的修改" aria-label="重做已撤销的修改" disabled>{{ icon('redo') }}</button></div></div>
+        <aside class="preview-pane" id="preview-pane" aria-label="{{ t("预览与导出") }}" data-i18n-aria-label="预览与导出">
+          <div class="preview-toolbar"><button type="button" class="small-button decode-button" id="decode-qr" title="{{ t("识别当前二维码，在新标签页打开识别出的链接") }}" data-i18n-title="识别当前二维码，在新标签页打开识别出的链接" disabled>{{ icon('qr') }}<span data-i18n="识别并跳转">{{ t("识别并跳转") }}</span></button><div class="history-actions"><button type="button" class="icon-button" id="undo" data-tooltip="{{ t("撤销上次修改") }}" data-i18n-data-tooltip="撤销上次修改" aria-label="{{ t("撤销上次修改") }}" data-i18n-aria-label="撤销上次修改" disabled>{{ icon('undo') }}</button><button type="button" class="icon-button" id="redo" data-tooltip="{{ t("重做已撤销的修改") }}" data-i18n-data-tooltip="重做已撤销的修改" aria-label="{{ t("重做已撤销的修改") }}" data-i18n-aria-label="重做已撤销的修改" disabled>{{ icon('redo') }}</button></div></div>
           <div class="preview-canvas">
-            <div class="preview-viewport" id="preview-viewport" tabindex="0" role="region" aria-label="二维码预览画布">
-              <div class="preview-surface"><div class="preview-card"><div class="preview-stage" id="preview-stage"><img id="preview-image" alt="生成的二维码预览" hidden><div id="preview-placeholder" class="preview-placeholder">{{ icon('qr') }}<span>等待生成二维码</span></div></div></div></div>
+            <div class="preview-viewport" id="preview-viewport" tabindex="0" role="region" aria-label="{{ t("二维码预览画布") }}" data-i18n-aria-label="二维码预览画布">
+              <div class="preview-surface"><div class="preview-card"><div class="preview-stage" id="preview-stage"><img id="preview-image" alt="{{ t("生成的二维码预览") }}" data-i18n-alt="生成的二维码预览" hidden><div id="preview-placeholder" class="preview-placeholder">{{ icon('qr') }}<span data-i18n="等待生成二维码">{{ t("等待生成二维码") }}</span></div></div></div></div>
             </div>
-            <div class="preview-zoom" role="group" aria-label="预览缩放">
-              <button type="button" id="zoom-out" aria-label="缩小预览" disabled>{{ icon('minus') }}</button>
-              <button type="button" id="zoom-reset" title="重置为 100%" aria-label="重置预览缩放" disabled><output id="zoom-value" aria-live="polite" aria-atomic="true">100%</output></button>
-              <button type="button" id="zoom-in" aria-label="放大预览" disabled>{{ icon('plus') }}</button>
+            <div class="preview-zoom" role="group" aria-label="{{ t("预览缩放") }}" data-i18n-aria-label="预览缩放">
+              <button type="button" id="zoom-out" aria-label="{{ t("缩小预览") }}" data-i18n-aria-label="缩小预览" disabled>{{ icon('minus') }}</button>
+              <button type="button" id="zoom-reset" title="{{ t("重置为 100%") }}" data-i18n-title="重置为 100%" aria-label="{{ t("重置预览缩放") }}" data-i18n-aria-label="重置预览缩放" disabled><output id="zoom-value" aria-live="polite" aria-atomic="true">100%</output></button>
+              <button type="button" id="zoom-in" aria-label="{{ t("放大预览") }}" data-i18n-aria-label="放大预览" disabled>{{ icon('plus') }}</button>
             </div>
           </div>
           <div class="export-panel">
-            <p id="status" class="visually-hidden" role="status" aria-live="polite">正在生成预览…</p>
+            <p id="status" class="visually-hidden" role="status" aria-live="polite" data-i18n="正在生成预览…">{{ t("正在生成预览…") }}</p>
             <div class="field-grid export-settings">
-              <div class="field"><label for="size">导出尺寸</label><select id="size"><option value="256">256 像素</option><option value="512">512 像素</option><option value="1024" selected>1024 像素</option><option value="2048">2048 像素</option><option value="4096">4096 像素</option></select></div>
-              <div class="field"><label for="margin">边距</label><select id="margin"><option value="0">0 个码点</option><option value="2">2 个码点</option><option value="4" selected>4 个码点</option><option value="8">8 个码点</option></select></div>
-              <div class="field"><label for="image-shape">图片外角</label><select id="image-shape"><option value="square" selected>直角</option><option value="rounded">圆角</option></select></div>
+              <div class="field"><label for="size" data-i18n="导出尺寸">{{ t("导出尺寸") }}</label><select id="size"><option value="256" data-i18n="256 像素">{{ t("256 像素") }}</option><option value="512" data-i18n="512 像素">{{ t("512 像素") }}</option><option value="1024" selected data-i18n="1024 像素">{{ t("1024 像素") }}</option><option value="2048" data-i18n="2048 像素">{{ t("2048 像素") }}</option><option value="4096" data-i18n="4096 像素">{{ t("4096 像素") }}</option></select></div>
+              <div class="field"><label for="margin" data-i18n="边距">{{ t("边距") }}</label><select id="margin"><option value="0" data-i18n="0 个码点">{{ t("0 个码点") }}</option><option value="2" data-i18n="2 个码点">{{ t("2 个码点") }}</option><option value="4" selected data-i18n="4 个码点">{{ t("4 个码点") }}</option><option value="8" data-i18n="8 个码点">{{ t("8 个码点") }}</option></select></div>
+              <div class="field"><label for="image-shape" data-i18n="图片外角">{{ t("图片外角") }}</label><select id="image-shape"><option value="square" selected data-i18n="直角">{{ t("直角") }}</option><option value="rounded" data-i18n="圆角">{{ t("圆角") }}</option></select></div>
             </div>
-            <div class="download-actions"><button type="button" class="primary-button" id="download-png" disabled>{{ icon('download') }}<span>导出 PNG</span></button><button type="button" class="secondary-button" id="download-svg" disabled>{{ icon('download') }}<span>导出 SVG</span></button></div>
+            <div class="download-actions"><button type="button" class="primary-button" id="download-png" disabled>{{ icon('download') }}<span data-i18n="导出 PNG">{{ t("导出 PNG") }}</span></button><button type="button" class="secondary-button" id="download-svg" disabled>{{ icon('download') }}<span data-i18n="导出 SVG">{{ t("导出 SVG") }}</span></button></div>
           </div>
         </aside>
       </div>
     </main>
   </div>
   <dialog id="logo-crop-dialog" class="logo-crop-dialog" aria-labelledby="logo-crop-title" aria-describedby="logo-crop-note">
-    <h2 id="logo-crop-title" class="crop-heading">裁剪 Logo</h2>
-    <p id="logo-crop-note" class="visually-hidden">拖动框选，框内移动，四角缩放。</p>
-    <div class="crop-workspace"><canvas id="logo-crop-canvas" tabindex="0" aria-label="Logo 裁剪范围" aria-describedby="crop-keyboard-note"></canvas></div>
-    <p id="crop-keyboard-note" class="visually-hidden">方向键移动选区，Shift 加方向键每次移动 10 像素。</p>
+    <h2 id="logo-crop-title" class="crop-heading" data-i18n="裁剪 Logo">{{ t("裁剪 Logo") }}</h2>
+    <p id="logo-crop-note" class="visually-hidden" data-i18n="拖动框选，框内移动，四角缩放。">{{ t("拖动框选，框内移动，四角缩放。") }}</p>
+    <div class="crop-workspace"><canvas id="logo-crop-canvas" tabindex="0" aria-label="{{ t("Logo 裁剪范围") }}" data-i18n-aria-label="Logo 裁剪范围" aria-describedby="crop-keyboard-note"></canvas></div>
+    <p id="crop-keyboard-note" class="visually-hidden" data-i18n="方向键移动选区，Shift 加方向键每次移动 10 像素。">{{ t("方向键移动选区，Shift 加方向键每次移动 10 像素。") }}</p>
     <fieldset class="crop-controls" aria-describedby="crop-edge-note">
-      <legend>裁去（像素）</legend>
-      <p id="crop-edge-note" class="visually-hidden">输入各边裁去的像素数，0 表示保留该边。</p>
+      <legend data-i18n="裁去（像素）">{{ t("裁去（像素）") }}</legend>
+      <p id="crop-edge-note" class="visually-hidden" data-i18n="输入各边裁去的像素数，0 表示保留该边。">{{ t("输入各边裁去的像素数，0 表示保留该边。") }}</p>
       <div class="crop-fields">
-        <div class="field"><label for="crop-top">上</label><input id="crop-top" type="number" min="0" step="1" inputmode="numeric"></div>
-        <div class="field"><label for="crop-bottom">下</label><input id="crop-bottom" type="number" min="0" step="1" inputmode="numeric"></div>
-        <div class="field"><label for="crop-left">左</label><input id="crop-left" type="number" min="0" step="1" inputmode="numeric"></div>
-        <div class="field"><label for="crop-right">右</label><input id="crop-right" type="number" min="0" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="crop-top" data-i18n="上">{{ t("上") }}</label><input id="crop-top" type="number" min="0" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="crop-bottom" data-i18n="下">{{ t("下") }}</label><input id="crop-bottom" type="number" min="0" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="crop-left" data-i18n="左">{{ t("左") }}</label><input id="crop-left" type="number" min="0" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="crop-right" data-i18n="右">{{ t("右") }}</label><input id="crop-right" type="number" min="0" step="1" inputmode="numeric"></div>
       </div>
     </fieldset>
     <p id="crop-selection-size" class="visually-hidden" role="status" aria-live="polite"></p>
-    <div class="crop-actions"><button type="button" class="text-button" id="reset-logo-crop">整张</button><div><button type="button" class="small-button" id="cancel-logo-crop">取消</button><button type="button" class="small-button crop-apply" id="apply-logo-crop">确定</button></div></div>
+    <div class="crop-actions"><button type="button" class="text-button" id="reset-logo-crop" data-i18n="整张">{{ t("整张") }}</button><div><button type="button" class="small-button" id="cancel-logo-crop" data-i18n="取消">{{ t("取消") }}</button><button type="button" class="small-button crop-apply" id="apply-logo-crop" data-i18n="确定">{{ t("确定") }}</button></div></div>
   </dialog>
 </body>
 </html>

@@ -7,7 +7,7 @@ const { chromium } = require(process.env.QRG_PLAYWRIGHT_MODULE || 'playwright-co
 async function main() {
   const browser = await chromium.launch({ headless: true,
     executablePath: process.env.BROWSER_EXECUTABLE_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+  const page = await browser.newPage({ locale: 'zh-CN', viewport: { width: 1440, height: 900 }, acceptDownloads: true });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {

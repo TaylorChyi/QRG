@@ -1,6 +1,7 @@
-(() => {
+(async () => {
   'use strict';
 
+  const t = (...args) => window.QRGI18n.t(...args);
   const $ = (id) => document.getElementById(id);
   const controls = {
     content: $('content'), color: $('color'), background: $('background'), transparent: $('transparent'),
@@ -100,6 +101,7 @@
       window.QRGControls?.close();
       control.replaceChildren(...entries.map(number => new Option(label(number), String(number))));
     }
+    [...control.options].forEach(option => { option.textContent = label(Number(option.value)); });
     control.value = String(value);
   }
 
@@ -115,10 +117,10 @@
     pngButton.disabled = !canExport;
     svgButton.disabled = !canExport;
     openLinkButton.disabled = !webLink(settings.content);
-    openLinkButton.title = openLinkButton.disabled ? '请输入完整的 http:// 或 https:// 链接' : '在新标签页打开链接';
+    openLinkButton.title = openLinkButton.disabled ? t('请输入完整的 http:// 或 https:// 链接') : t('在新标签页打开链接');
     decodeButton.disabled = readyBlob === null || readyRevision !== revision || decodeController !== null;
     decodeButton.setAttribute('aria-busy', String(decodeController !== null));
-    decodeButton.querySelector('span').textContent = decodeController ? '识别中…' : '识别并跳转';
+    decodeButton.querySelector('span').textContent = decodeController ? t('识别中…') : t('识别并跳转');
     zoomOut.disabled = preview.hidden || previewZoom === 25;
     zoomIn.disabled = preview.hidden || previewZoom === 200;
     zoomReset.disabled = preview.hidden;
@@ -136,15 +138,15 @@
     controls.error_correction.value = settings.error_correction;
     controls.version.value = settings.version === null ? 'auto' : String(settings.version);
     controls.size.value = String(settings.size);
-    syncOptions(controls.logo_modules, Object.keys(logoOptions || {}).map(Number), settings.logo_modules, value => `${value} × ${value} 格`);
+    syncOptions(controls.logo_modules, Object.keys(logoOptions || {}).map(Number), settings.logo_modules, value => t('{value} × {value} 格', { value }));
     syncOptions(controls.logo_padding_modules, logoOptions?.[settings.logo_modules] || [0, 1, 2], settings.logo_padding_modules, String);
     const logoUnavailable = !settings.logo || logoOptions !== null && Object.keys(logoOptions).length === 0;
     controls.logo_modules.disabled = logoUnavailable;
     controls.logo_padding_modules.disabled = logoUnavailable;
     $('logo-options').hidden = !settings.logo;
     $('color-value').textContent = settings.color.toUpperCase();
-    $('background-value').textContent = settings.transparent ? '透明' : settings.background.toUpperCase();
-    $('logo-name').textContent = settings.logo_name || '选择图片';
+    $('background-value').textContent = settings.transparent ? t('透明') : settings.background.toUpperCase();
+    $('logo-name').textContent = settings.logo_name || t('选择图片');
     $('logo-thumb').hidden = !settings.logo;
     $('logo-placeholder').hidden = Boolean(settings.logo);
     $('content-count').textContent = `${settings.content.length} / 4096`;
@@ -192,12 +194,12 @@
       stage.classList.remove('is-loading');
       preview.hidden = true;
       placeholder.hidden = false;
-      placeholder.lastElementChild.textContent = '输入链接后自动生成';
+      placeholder.lastElementChild.textContent = t('输入链接后自动生成');
       refreshButtons();
       announce();
       return;
     }
-    announce('正在更新预览…');
+    announce(t('正在更新预览…'));
     const targetRevision = revision;
     renderTimer = setTimeout(() => render(targetRevision), 320);
   }
@@ -244,13 +246,13 @@
   }
 
   async function requestImage(format, signal) {
-    const response = await fetch('/api/render', {
+    const response = await fetch(window.QRGI18n.apiURL('/api/render'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload(format)), signal,
     });
     if (!response.ok) {
       const data = await response.json().catch(() => null);
-      const error = new Error(data?.error || `生成失败（HTTP ${response.status}）`);
+      const error = new Error(data?.error || t('生成失败（HTTP {status}）', { status: response.status }));
       error.logoOptions = data?.logo_options;
       throw error;
     }
@@ -288,8 +290,8 @@
       stage.classList.remove('is-loading');
       preview.hidden = true;
       placeholder.hidden = false;
-      placeholder.lastElementChild.textContent = '预览生成失败';
-      announce(error instanceof TypeError ? '无法连接 QRG 服务，请检查服务是否正在运行。' : error.message, 'error');
+      placeholder.lastElementChild.textContent = t('预览生成失败');
+      announce(error instanceof TypeError ? t('无法连接 QRG 服务，请检查服务是否正在运行。') : error.message, 'error');
       refreshButtons();
     }
   }
@@ -310,16 +312,16 @@
     const targetRevision = revision;
     busyExport = true;
     refreshButtons();
-    announce('正在导出 SVG…');
+    announce(t('正在导出 SVG…'));
     exportController = new AbortController();
     try {
       const result = await requestImage('svg', exportController.signal);
       if (targetRevision !== revision) return;
-      download(result.blob, '二维码.svg');
-      announce('SVG 已导出');
+      download(result.blob, 'qrg.svg');
+      announce(t('SVG 已导出'));
     } catch (error) {
       if (targetRevision !== revision || error.name === 'AbortError') return;
-      announce(error instanceof TypeError ? '无法连接 QRG 服务，请检查服务是否正在运行。' : error.message, 'error');
+      announce(error instanceof TypeError ? t('无法连接 QRG 服务，请检查服务是否正在运行。') : error.message, 'error');
     } finally {
       busyExport = false;
       refreshButtons();
@@ -330,12 +332,13 @@
     if (decodeButton.disabled) return;
     const targetWindow = window.open('about:blank', '_blank');
     if (!targetWindow) {
-      announce('浏览器阻止了新标签页，请允许此网站打开弹出窗口后重试。', 'error');
+      announce(t('浏览器阻止了新标签页，请允许此网站打开弹出窗口后重试。'), 'error');
       return;
     }
     targetWindow.opener = null;
-    targetWindow.document.title = '正在识别二维码…';
-    targetWindow.document.body.textContent = '正在识别二维码，成功后将打开链接…';
+    targetWindow.document.documentElement.lang = document.documentElement.lang;
+    targetWindow.document.title = t('正在识别二维码…');
+    targetWindow.document.body.textContent = t('正在识别二维码，成功后将打开链接…');
     const referrer = targetWindow.document.createElement('meta');
     referrer.name = 'referrer';
     referrer.content = 'no-referrer';
@@ -347,34 +350,34 @@
     decodeWindow = targetWindow;
     const timeout = setTimeout(() => activeController.abort(), 15_000);
     refreshButtons();
-    announce('正在识别二维码…');
+    announce(t('正在识别二维码…'));
     try {
       const image = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('无法读取二维码图片，请重试。'));
+        reader.onerror = () => reject(new Error(t('无法读取二维码图片，请重试。')));
         reader.readAsDataURL(readyBlob);
       });
       if (targetRevision !== revision) return;
       activeController.signal.throwIfAborted();
-      const response = await fetch('/api/decode', {
+      const response = await fetch(window.QRGI18n.apiURL('/api/decode'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image }), signal: activeController.signal,
       });
       const data = await response.json();
       if (targetRevision !== revision) return;
       activeController.signal.throwIfAborted();
-      if (!response.ok) throw new Error(data.error || '二维码识别失败，请调整样式后重试。');
+      if (!response.ok) throw new Error(data.error || t('二维码识别失败，请调整样式后重试。'));
       const url = typeof data.content === 'string' && webLink(data.content);
-      if (!url) throw new Error('识别成功，但二维码内容不是 http:// 或 https:// 网页链接。');
-      if (targetWindow.closed) throw new Error('新标签页已关闭，请重试。');
+      if (!url) throw new Error(t('识别成功，但二维码内容不是 http:// 或 https:// 网页链接。'));
+      if (targetWindow.closed) throw new Error(t('新标签页已关闭，请重试。'));
       targetWindow.location.replace(url.href);
       decodeWindow = null;
-      announce('识别成功，已在新标签页打开链接。');
+      announce(t('识别成功，已在新标签页打开链接。'));
     } catch (error) {
       if (targetRevision !== revision) return;
-      announce(error.name === 'AbortError' ? '识别超时，请重试。'
-        : error instanceof TypeError ? '无法连接 QRG 服务，请检查服务是否正在运行。' : error.message, 'error');
+      announce(error.name === 'AbortError' ? t('识别超时，请重试。')
+        : error instanceof TypeError ? t('无法连接 QRG 服务，请检查服务是否正在运行。') : error.message, 'error');
     } finally {
       clearTimeout(timeout);
       if (decodeController === activeController) {
@@ -403,11 +406,11 @@
     window.QRGLogoCrop.close();
     const readToken = ++logoReadToken;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      announce('请选择 PNG、JPEG 或 WebP 图片。', 'error');
+      announce(t('请选择 PNG、JPEG 或 WebP 图片。'), 'error');
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      announce('Logo 图片不能超过 2 MiB。', 'error');
+      announce(t('Logo 图片不能超过 2 MiB。'), 'error');
       return;
     }
     try {
@@ -418,10 +421,10 @@
         reader.readAsDataURL(file);
       });
       if (readToken !== logoReadToken) return;
-      if (typeof data !== 'string') throw new Error('无法读取图片。');
+      if (typeof data !== 'string') throw new Error(t('无法读取图片。'));
       await window.QRGLogoCrop.open({ source: data, name: file.name, onApply: applyLogo });
     } catch (error) {
-      if (readToken === logoReadToken) announce(error.message || '无法读取 Logo 图片。', 'error');
+      if (readToken === logoReadToken) announce(error.message || t('无法读取 Logo 图片。'), 'error');
     }
   });
 
@@ -440,7 +443,7 @@
     if (!settings.logo) return;
     try {
       await window.QRGLogoCrop.open({ source: settings.logo, name: settings.logo_name, crop: settings.logo_crop, onApply: applyLogo });
-    } catch { announce('无法读取 Logo 图片。', 'error'); }
+    } catch { announce(t('无法读取 Logo 图片。'), 'error'); }
   });
   $('remove-logo').addEventListener('click', () => {
     if (!settings.logo) return;
@@ -463,8 +466,8 @@
   $('editor-form').addEventListener('submit', (event) => event.preventDefault());
   pngButton.addEventListener('click', () => {
     if (!pngButton.disabled && readyBlob && readyRevision === revision) {
-      download(readyBlob, '二维码.png');
-      announce('PNG 已导出');
+      download(readyBlob, 'qrg.png');
+      announce(t('PNG 已导出'));
     }
   });
   svgButton.addEventListener('click', exportSvg);
@@ -488,6 +491,12 @@
     });
   }
 
+  document.addEventListener('qrg:languagechange', () => {
+    syncControls();
+    invalidate();
+  });
+
+  await window.QRGI18n.ready;
   window.QRGControls?.init();
   syncControls();
   invalidate();

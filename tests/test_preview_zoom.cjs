@@ -9,11 +9,11 @@ async function main() {
     headless: true,
     executablePath: process.env.BROWSER_EXECUTABLE_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+  const page = await browser.newPage({ locale: 'zh-CN', viewport: { width: 1440, height: 900 }, acceptDownloads: true });
   const errors = [];
   let renderRequests = 0;
   page.on('pageerror', error => errors.push(error.message));
-  page.on('request', request => { if (request.url().endsWith('/api/render')) renderRequests += 1; });
+  page.on('request', request => { if (new URL(request.url()).pathname === '/api/render') renderRequests += 1; });
   try {
     await page.goto(process.env.BASE_URL || 'http://127.0.0.1:8000', { waitUntil: 'networkidle' });
     await page.waitForFunction(() => !document.querySelector('#download-png').disabled);

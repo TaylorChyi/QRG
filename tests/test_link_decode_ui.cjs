@@ -13,7 +13,7 @@ async function ready(page) {
 
 async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: browserPath });
-  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const context = await browser.newContext({ locale: 'zh-CN', viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -43,7 +43,7 @@ async function main() {
     await page.locator('#content').fill(realTarget);
     await ready(page);
     const realPopupPromise = page.waitForEvent('popup');
-    const decodeRequestPromise = page.waitForRequest(request => request.url().endsWith('/api/decode'));
+    const decodeRequestPromise = page.waitForRequest(request => new URL(request.url()).pathname === '/api/decode');
     await page.locator('#decode-qr').click();
     const realPopup = await realPopupPromise;
     const decodeRequest = await decodeRequestPromise;
@@ -53,36 +53,36 @@ async function main() {
     await realPopup.close();
     await ready(page);
 
-    await page.route('**/api/decode', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ content: 'https://other.example.test/from-image' }) }));
+    await page.route('**/api/decode?*', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ content: 'https://other.example.test/from-image' }) }));
     const changedPopupPromise = page.waitForEvent('popup');
     await page.locator('#decode-qr').click();
     const changedPopup = await changedPopupPromise;
     await changedPopup.waitForURL('https://other.example.test/from-image');
     assert.notEqual(changedPopup.url(), realTarget, 'destination must come from QR decoder');
     await changedPopup.close();
-    await page.unroute('**/api/decode');
+    await page.unroute('**/api/decode?*');
 
-    await page.route('**/api/decode', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ content: 'plain QR text' }) }));
+    await page.route('**/api/decode?*', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ content: 'plain QR text' }) }));
     const textPopupPromise = page.waitForEvent('popup');
     await page.locator('#decode-qr').click();
     const textPopup = await textPopupPromise;
     await textPopup.waitForEvent('close');
     assert.match(await page.locator('#status').textContent(), /链接|网页|http/i);
-    await page.unroute('**/api/decode');
+    await page.unroute('**/api/decode?*');
 
-    await page.route('**/api/decode', route => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: '未识别到二维码' }) }));
+    await page.route('**/api/decode?*', route => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: '未识别到二维码' }) }));
     const failedPopupPromise = page.waitForEvent('popup');
     await page.locator('#decode-qr').click();
     const failedPopup = await failedPopupPromise;
     await failedPopup.waitForEvent('close');
     assert.match(await page.locator('#status').textContent(), /未识别到二维码/);
-    await page.unroute('**/api/decode');
+    await page.unroute('**/api/decode?*');
 
     let releaseDecode;
     const decoding = new Promise(resolve => { releaseDecode = resolve; });
     let requestStarted;
     const started = new Promise(resolve => { requestStarted = resolve; });
-    await page.route('**/api/decode', async route => {
+    await page.route('**/api/decode?*', async route => {
       requestStarted();
       await decoding;
       await route.fulfill({ status: 200, contentType: 'application/json',
@@ -96,7 +96,7 @@ async function main() {
     await page.locator('#content').fill('https://example.com/changed');
     if (!stalePopup.isClosed()) await stalePopup.waitForEvent('close');
     releaseDecode();
-    await page.unroute('**/api/decode');
+    await page.unroute('**/api/decode?*');
     await ready(page);
     assert.equal(context.pages().some(tab => tab.url() === 'https://other.example.test/stale'), false,
       'editing while decoding must not navigate stale QR results');
