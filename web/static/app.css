@@ -101,6 +101,10 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .text-button:hover:not(:disabled) { text-decoration: underline; }
 .field-action { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; font-size: 12px; }
 .field-action .icon { width: 13px; height: 13px; }
+.content-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; }
+.content-field .content-input, .qr-import-status { grid-column: 1 / -1; }
+.qr-import-status { margin: 4px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.qr-import-status.is-error { color: var(--error); }
 .upload-button { min-width: 0; flex: 1; justify-content: flex-start; }
 .logo-options { margin-top: 12px; }
 .logo-options :disabled { opacity: .5; }

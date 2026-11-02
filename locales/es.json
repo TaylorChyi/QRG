@@ -196,5 +196,7 @@
   "蓝色": "Azul",
   "增加": "Aumentar",
   "减少": "Disminuir",
-  "跟随浏览器": "Idioma del navegador"
+  "跟随浏览器": "Idioma del navegador",
+  "上传二维码": "Subir imagen QR",
+  "二维码内容超过 {limit} 个字符，请使用内容更短的二维码。": "El contenido del QR supera los {limit} caracteres. Usa un código QR con un contenido más corto."
 }

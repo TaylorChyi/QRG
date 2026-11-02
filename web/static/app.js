@@ -399,6 +399,8 @@
     });
   }
 
+  controls.content.addEventListener('qrg:import-content', event => update('content', event.detail));
+
   logoFile.addEventListener('change', async () => {
     const file = logoFile.files?.[0];
     logoFile.value = '';
