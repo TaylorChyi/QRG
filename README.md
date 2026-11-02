@@ -18,6 +18,8 @@ Web 界面直接排列链接、颜色、形状、Logo 和二维码规格，提�
 
 预览使用整片点阵画布，工具栏和缩放控件悬浮其上。100% 会按可用画布适配，完整显示二维码；底部胶囊控件提供 25%–200% 缩放，减号和加号每次调整 25%，点击百分比可回到 100%。放大后可在整片画布内滚动查看，导出尺寸和内容保持不变。
 
+「图片外角」可独立选择直角或圆角，默认直角，不随码眼形状变化。圆角会应用到整张图片，PNG/SVG 四角外侧透明，预览与导出一致；圆角半径为 1.5 个码点，支持撤销和重做。
+
 上传 Logo 后可框选实际使用的范围，拖动选区、调整四角或输入上、下、左、右各边裁去的像素数，并在确认后应用到预览及 PNG/SVG 导出。「整张」可恢复完整图片；「调整范围」可重新编辑原图，裁剪也支持撤销/重做。Logo 大小按完整网格选择，例如「5 × 5 格」，图片等比放入所选范围；周围留白按码点提供 0、1、2 档，每档直接对应实际清除的完整码点，0 表示只清除 Logo 槽。大小和留白选项根据当前二维码版本及定位结构调整，隐藏无法放置的组合；缩小二维码后会收敛到可用范围。偶数边长的 Logo 槽会偏离几何中心半格，避免额外清除一行或一列。二维码版本提供自动、1、3、5、10；自动选择仍支持完整版本范围。
 
 链接右侧的「跳转」可在新标签页打开输入框中的 HTTP/HTTPS 网址，字数统计位于输入框内。预览区的「识别并跳转」会将当前预览 PNG 交给本机或自部署的 QRG 服务器实际解码，再在新标签页打开识别出的网址；识别失败或内容不是网页链接时会显示原因。修改设置后须等待新预览成功，识别过程中修改设置会取消本次跳转。
@@ -66,6 +68,7 @@ npm install --prefix build/browser-qa --no-package-lock --no-save playwright-cor
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_web_ui.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_logo_ui.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_preview_zoom.cjs
+QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_image_corners_ui.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_link_decode_ui.cjs
 ```
 
@@ -106,6 +109,7 @@ qrg 'https://example.com' -o ~/Desktop/二维码.png
 - `--color`：码的颜色；`--background`：背景颜色，支持常见颜色名称、十六进制颜色及 `transparent`。
 - `--module-shape`：`square` 方形、`tile` 圆角瓷砖、`circle` 圆形。
 - `--eye-shape`：`square` 方形或 `rounded` 中圆角。
+- `--image-shape`：`square` 图片直角（默认）或 `rounded` 图片圆角，与码眼形状独立。圆角半径为 1.5 个码点，四角外侧透明。
 - `--margin`：四周边距，以码点数计，默认 4。
 - `--error-correction`：容错等级 `L`、`M`、`Q`、`H`，默认 `M`。
 - `--version`：版本 1–40，码的边长为 `17 + 4 × 版本` 个码点，例如版本 5 是 37×37；不指定时自动选择。指定的版本容不下内容时会报错。

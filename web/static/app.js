@@ -4,7 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const controls = {
     content: $('content'), color: $('color'), background: $('background'), transparent: $('transparent'),
-    module_shape: $('module-shape'), eye_shape: $('eye-shape'), margin: $('margin'),
+    module_shape: $('module-shape'), eye_shape: $('eye-shape'), image_shape: $('image-shape'), margin: $('margin'),
     error_correction: $('error-correction'), version: $('version'), size: $('size'),
     logo_modules: $('logo-modules'), logo_padding_modules: $('logo-padding-modules'),
   };
@@ -26,7 +26,7 @@
   const numericSettings = new Set(['margin', 'size', 'logo_modules', 'logo_padding_modules']);
   const initial = {
     content: 'https://example.com', color: '#000000', background: '#ffffff', transparent: false,
-    module_shape: 'tile', eye_shape: 'rounded', margin: 4, error_correction: 'H', version: null,
+    module_shape: 'tile', eye_shape: 'rounded', image_shape: 'square', margin: 4, error_correction: 'H', version: null,
     size: 1024, logo: null, logo_name: '', logo_crop: null, logo_modules: 5, logo_padding_modules: 1,
   };
 
@@ -131,6 +131,7 @@
     controls.transparent.checked = settings.transparent;
     controls.module_shape.value = settings.module_shape;
     controls.eye_shape.value = settings.eye_shape;
+    controls.image_shape.value = settings.image_shape;
     controls.margin.value = String(settings.margin);
     controls.error_correction.value = settings.error_correction;
     controls.version.value = settings.version === null ? 'auto' : String(settings.version);
@@ -234,6 +235,7 @@
       content: settings.content, color: settings.color,
       background: settings.transparent ? 'transparent' : settings.background,
       module_shape: settings.module_shape, eye_shape: settings.eye_shape,
+      image_shape: settings.image_shape,
       margin: settings.margin, error_correction: settings.error_correction,
       version: settings.version, size: settings.size,
       logo: settings.logo, logo_modules: settings.logo_modules,
@@ -253,6 +255,7 @@
       throw error;
     }
     return { blob: await response.blob(),
+      cornerRadius: Number(response.headers.get('X-QRG-Image-Corner-Radius')) || 0,
       logoOptions: JSON.parse(response.headers.get('X-QRG-Logo-Options') || 'null') };
   }
 
@@ -267,6 +270,7 @@
       const nextUrl = URL.createObjectURL(result.blob);
       const previousUrl = imageUrl;
       imageUrl = nextUrl;
+      stage.parentElement.style.setProperty('--image-corner-radius', `${result.cornerRadius}%`);
       preview.src = nextUrl;
       preview.hidden = false;
       placeholder.hidden = true;

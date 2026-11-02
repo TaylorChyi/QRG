@@ -50,6 +50,51 @@ class QRTests(unittest.TestCase):
                                 bounds = ImageChops.difference(image.convert('RGB'), paper).getbbox()
                             self.assertEqual(bounds, (0, 0, size, size))
 
+    def test_image_corners_are_independent_of_eye_shape_and_preserve_zero_margin_centres(self):
+        for eye_shape in ('square', 'rounded'):
+            with self.subTest(eye_shape=eye_shape):
+                base = QRSettings(content='x', version=1, size=420, margin=0, eye_shape=eye_shape)
+                square = render_qr(base, 'png')
+                rounded = render_qr(QRSettings(**{**base.__dict__, 'image_shape': 'rounded'}), 'png')
+                with Image.open(io.BytesIO(square.data)) as source, Image.open(io.BytesIO(rounded.data)) as target:
+                    self.assertEqual(source.getpixel((0, 0))[3], 255)
+                    self.assertEqual(target.getpixel((0, 0))[3], 0)
+                    self.assertEqual(target.getpixel((target.width // 2, 0))[3], 255)
+                    cell = target.width / 21
+                    for x, y in ((.5, .5), (20.5, .5), (.5, 20.5)):
+                        point = (round(x * cell), round(y * cell))
+                        self.assertEqual(target.getpixel(point), source.getpixel(point))
+
+    def test_rounded_svg_clips_canvas_and_cli_accepts_option(self):
+        out = self.folder / 'rounded.svg'
+        result = self.run_qrg('x', '-o', out, '--version', 1, '--image-shape', 'rounded', '--eye-shape', 'square')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        root = ET.parse(out).getroot()
+        ns = '{http://www.w3.org/2000/svg}'
+        clip = root.find(ns + 'clipPath')
+        self.assertEqual(clip.find(ns + 'rect').get('rx'), '1.5')
+        group = root.find(ns + 'g')
+        self.assertEqual(group.get('clip-path'), 'url(#image-corners)')
+        self.assertTrue(group.findall(ns + 'rect'))
+
+    def test_rounded_png_preserves_transparent_background_and_finder_pixels(self):
+        for alpha in (0, 128):
+            with self.subTest(background_alpha=alpha):
+                base = QRSettings(content='x', version=1, size=580, margin=4,
+                                  background=(255, 255, 255, alpha), eye_shape='rounded')
+                square = render_qr(base, 'png')
+                rounded = render_qr(QRSettings(**{**base.__dict__, 'image_shape': 'rounded'}), 'png')
+                with Image.open(io.BytesIO(square.data)) as source, Image.open(io.BytesIO(rounded.data)) as target:
+                    # The corner is removed, while the straight quiet zone keeps its own alpha.
+                    self.assertEqual(target.getpixel((0, 0))[3], 0)
+                    quiet = (target.width // 2, 1)
+                    self.assertEqual(target.getpixel(quiet), source.getpixel(quiet))
+                    self.assertEqual(target.getpixel(quiet)[3], alpha)
+                    cell = target.width / 29
+                    for module in ((4.5, 4.5), (5.5, 5.5), (7.5, 7.5)):
+                        point = tuple(round(coordinate * cell) for coordinate in module)
+                        self.assertEqual(target.getpixel(point), source.getpixel(point))
+
     @unittest.skipUnless(sys.platform == 'darwin', 'macOS Vision 解码校验仅在 macOS 上可用')
     def test_png_decodes_with_logo(self):
         out = self.folder/'out.png'

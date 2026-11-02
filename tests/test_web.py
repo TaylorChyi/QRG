@@ -98,6 +98,38 @@ class WebTests(unittest.TestCase):
             self.assertEqual(image.size, (400, 400))
             self.assertEqual(image.getpixel((0, 0))[3], 0)
 
+    def test_image_corner_option_affects_png_svg_and_response_metadata(self):
+        for eye_shape in ('square', 'rounded'):
+            with self.subTest(eye_shape=eye_shape):
+                png = self.render(content='x', image_shape='rounded', eye_shape=eye_shape, margin=4, version=1)
+                self.assertEqual(png.status_code, 200, png.json)
+                self.assertAlmostEqual(float(png.headers['X-QRG-Image-Corner-Radius']), 150 / 29, places=5)
+                with Image.open(io.BytesIO(png.data)) as image:
+                    self.assertEqual(image.getpixel((0, 0))[3], 0)
+                    self.assertEqual(image.getpixel((image.width // 2, 0))[3], 255)
+                svg = self.render(content='x', image_shape='rounded', eye_shape=eye_shape, margin=4, version=1, format='svg')
+                self.assertEqual(svg.status_code, 200, svg.json)
+                self.assertIsNotNone(ET.fromstring(svg.data).find('{http://www.w3.org/2000/svg}clipPath'))
+        square = self.render(image_shape='square', eye_shape='rounded')
+        self.assertEqual(square.headers['X-QRG-Image-Corner-Radius'], '0')
+        with Image.open(io.BytesIO(square.data)) as image:
+            self.assertEqual(image.getpixel((0, 0))[3], 255)
+
+    def test_rounded_zero_margin_qr_decodes_with_external_quiet_zone(self):
+        content = 'https://example.com/rounded'
+        response = self.render(content=content, image_shape='rounded', margin=0,
+                               eye_shape='square', module_shape='square')
+        self.assertEqual(response.status_code, 200, response.json)
+        with Image.open(io.BytesIO(response.data)) as image:
+            self.assertEqual(image.getpixel((0, 0))[3], 0)
+            canvas = Image.new('RGB', (480, 480), 'white')
+            canvas.paste(image, (40, 40), image)
+        buffer = io.BytesIO()
+        canvas.save(buffer, 'PNG')
+        decoded = self.decode(buffer.getvalue())
+        self.assertEqual(decoded.status_code, 200, decoded.json)
+        self.assertEqual(decoded.json['content'], content)
+
     def test_svg_logo_is_embedded_without_raster_canvas(self):
         logo = logo_data()
         with patch('qrg.Image.new', side_effect=AssertionError('SVG must not allocate a raster canvas')):
@@ -274,6 +306,7 @@ class WebTests(unittest.TestCase):
             {'size': 4097}, {'size': 63}, {'size': True}, {'size': 400.5}, {'margin': -1},
             {'version': 0}, {'version': []}, {'color': 'transparent'}, {'color': []},
             {'background': 'not-a-colour'}, {'module_shape': 'bad'}, {'eye_shape': {}},
+            {'image_shape': 'bad'}, {'image_shape': True},
             {'format': 'pdf'}, {'error_correction': 'X'},
             {'logo_scale': 0}, {'logo_scale': .26}, {'logo_scale': 10 ** 400},
             {'logo_scale': float('nan')}, {'logo_scale': float('inf')}, {'logo_scale': True},

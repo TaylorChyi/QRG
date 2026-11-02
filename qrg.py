@@ -10,7 +10,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 import qrcode
-from PIL import Image, ImageColor, ImageDraw
+from PIL import Image, ImageChops, ImageColor, ImageDraw
 from qrcode.exceptions import DataOverflowError
 
 LEVELS = {'L': qrcode.constants.ERROR_CORRECT_L, 'M': qrcode.constants.ERROR_CORRECT_M,
@@ -42,6 +42,7 @@ class QRSettings:
     background: tuple = (255, 255, 255, 255)
     module_shape: str = 'square'
     eye_shape: str = 'square'
+    image_shape: str = 'square'
     margin: int = 4
     error_correction: str = 'M'
     version: int | None = None
@@ -112,6 +113,8 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     """Render in memory for both the CLI and web app; no filesystem or subprocesses."""
     if output_format not in ('png', 'svg'):
         raise ValueError('输出格式必须为 PNG 或 SVG')
+    if args.image_shape not in ('square', 'rounded'):
+        raise ValueError('图片外角必须为直角或圆角')
     if args.logo_padding_modules is not None:
         if type(args.logo_padding_modules) is not int or not 0 <= args.logo_padding_modules <= 8:
             raise ValueError('logo_padding_modules 必须为 0–8 之间的整数')
@@ -209,6 +212,16 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
         data = io.BytesIO(); logo.save(data, format='PNG')
         encoded = base64.b64encode(data.getvalue()).decode('ascii')
         parts.append(f'<image x="{x+args.margin:g}" y="{y+args.margin:g}" width="{lw:g}" height="{lh:g}" href="data:image/png;base64,{encoded}"/>')
+    if args.image_shape == 'rounded':
+        # Apply the same outer silhouette to the background, modules and logo.
+        # The first module centre remains inside a 1.5-module corner even at margin 0.
+        parts.insert(1, f'<clipPath id="image-corners"><rect width="{total}" height="{total}" rx="1.5"/></clipPath><g clip-path="url(#image-corners)">')
+        parts.append('</g>')
+        if image is not None:
+            mask = Image.new('L', image.size, 0)
+            ImageDraw.Draw(mask).rounded_rectangle((0, 0, image.width - 1, image.height - 1),
+                                                    radius=image.width * 1.5 / total, fill=255)
+            image.putalpha(ImageChops.multiply(image.getchannel('A'), mask))
     parts.append('</svg>')
     if output_format == 'svg':
         data = ('\n'.join(parts)+'\n').encode('utf-8')
@@ -228,6 +241,7 @@ def main():
     p.add_argument('--background', type=color, default=color('#ffffff'), help='背景颜色，或 transparent（默认白色）')
     p.add_argument('--module-shape', choices=['square', 'tile', 'circle'], default='square', help='码点形状：方形、圆角瓷砖、圆形')
     p.add_argument('--eye-shape', choices=['square', 'rounded'], default='square', help='码眼形状：方形或中圆角')
+    p.add_argument('--image-shape', choices=['square', 'rounded'], default='square', help='整张图片外角：直角或圆角')
     p.add_argument('--margin', type=positive, default=4, help='边距，单位为码点（默认 4）')
     p.add_argument('--error-correction', choices=['L','M','Q','H'], type=str.upper, default='M', help='容错等级 L/M/Q/H（默认 M）')
     p.add_argument('--version', type=int, choices=range(1, 41), help='二维码版本 1–40，边长为 17 + 4 × 版本；默认自动选择')

@@ -115,6 +115,7 @@ def settings_from_json(data):
         content=content, **colours,
         module_shape=choice(data, 'module_shape', 'tile', ('square', 'tile', 'circle')),
         eye_shape=choice(data, 'eye_shape', 'rounded', ('square', 'rounded')),
+        image_shape=choice(data, 'image_shape', 'square', ('square', 'rounded')),
         margin=integer(data, 'margin', 4, 0, 32),
         error_correction=choice(data, 'error_correction', 'H', ('L', 'M', 'Q', 'H')),
         version=integer(data, 'version', None, 1, 40, nullable=True),
@@ -247,6 +248,8 @@ def render():
         'X-QRG-Version': str(result.version), 'X-QRG-Modules': str(result.modules),
         'X-QRG-Logo-Max-Modules': str(result.modules // 4),
         'X-QRG-Logo-Options': json.dumps(logo_options(result.version, result.modules), separators=(',', ':')),
+        'X-QRG-Image-Corner-Radius': f'{150 / (result.modules + 2 * settings.margin):.6f}'
+        if settings.image_shape == 'rounded' else '0',
     }
     if settings.logo_modules is not None:
         headers['X-QRG-Logo-Modules'] = str(settings.logo_modules)

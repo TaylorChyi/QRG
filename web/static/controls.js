@@ -58,12 +58,20 @@
   }
 
   function shapePreview(select, value) {
-    if (!['module-shape', 'eye-shape'].includes(select.id)) return null;
+    if (!['module-shape', 'eye-shape', 'image-shape'].includes(select.id)) return null;
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('qrg-shape-preview');
     svg.setAttribute('aria-hidden', 'true');
     svg.setAttribute('focusable', 'false');
-    if (select.id === 'module-shape') {
+    if (select.id === 'image-shape') {
+      svg.setAttribute('viewBox', '0 0 24 24');
+      const outline = document.createElementNS(svg.namespaceURI, 'rect');
+      for (const [name, attribute] of Object.entries({ x: 2, y: 2, width: 20, height: 20, rx: value === 'rounded' ? 4 : 0,
+        fill: 'none', stroke: 'currentColor', 'stroke-width': 2 })) {
+        outline.setAttribute(name, attribute);
+      }
+      svg.append(outline);
+    } else if (select.id === 'module-shape') {
       svg.setAttribute('viewBox', '0 0 2.4 2.4');
       const inset = value === 'tile' ? 0.12 : 0;
       const radius = { square: 0, tile: 0.16, circle: 0.5 }[value];
