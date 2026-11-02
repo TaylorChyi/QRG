@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+*.egg-info/
+build/
+dist/
+.DS_Store
+.idea/
+.vscode/
+
+# Local QR examples and source artwork, kept outside the distributable project.
+WeLink-*

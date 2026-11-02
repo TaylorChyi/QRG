@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ ! -x "$DIR/.venv/bin/python" ]; then
+  python3 -m venv "$DIR/.venv"
+fi
+if ! "$DIR/.venv/bin/python" -c 'import qrcode, PIL' >/dev/null 2>&1; then
+  echo '首次使用：正在安装二维码生成依赖…' >&2
+  "$DIR/.venv/bin/python" -m pip install -r "$DIR/requirements.txt" >&2
+fi
+exec "$DIR/.venv/bin/python" "$DIR/qrg.py" "$@"
