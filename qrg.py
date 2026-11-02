@@ -51,6 +51,7 @@ class QRSettings:
     logo_scale: float = .20
     logo_padding_px: int | None = None
     logo_modules: int | None = None
+    logo_padding_modules: int | None = None
 
 
 class LogoSizeError(ValueError):
@@ -66,10 +67,57 @@ class RenderResult:
     modules: int
 
 
+def logo_clearance(clearance, version, modules, padding_modules=None, padding_pixels=None, cell_pixels=None):
+    """Return the erased module rectangle, rejecting structural-pattern overlap."""
+    if padding_modules is not None:
+        padding = padding_modules
+    elif padding_pixels is not None:
+        padding = padding_pixels / cell_pixels
+    else:
+        padding = 1.25
+    left, top, right, bottom = (math.floor(clearance[0]-padding), math.floor(clearance[1]-padding),
+                                math.ceil(clearance[2]+padding), math.ceil(clearance[3]+padding))
+    patterns = [(0, 0, 7, 7), (modules-7, 0, modules, 7), (0, modules-7, 7, modules)]
+    for cy in qrcode.util.pattern_position(version):
+        for cx in qrcode.util.pattern_position(version):
+            if (cx <= 8 and cy <= 8) or (cx >= modules-9 and cy <= 8) or (cx <= 8 and cy >= modules-9):
+                continue
+            patterns.append((cx-2, cy-2, cx+3, cy+3))
+    if any(left < x1 and right > x0 and top < y1 and bottom > y0 for x0, y0, x1, y1 in patterns):
+        raise ValueError('Logo 留白与二维码的定位结构重叠；请减小 Logo 或更换版本')
+    return left, top, right, bottom
+
+
+def logo_options(version, modules):
+    """Offer only useful centred slots and padding that fit this QR version."""
+    choices = sorted({2, 3, 5, 7, 9, 11, 15, modules // 4})
+    result = {}
+    for side in choices:
+        if not 1 <= side <= modules // 4:
+            continue
+        start = (modules - side) // 2
+        clearance = (start, start, start + side, start + side)
+        allowed = []
+        for padding in (0, 1, 2):
+            try:
+                logo_clearance(clearance, version, modules, padding_modules=padding)
+            except ValueError:
+                continue
+            allowed.append(padding)
+        if allowed:
+            result[str(side)] = allowed
+    return result
+
+
 def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     """Render in memory for both the CLI and web app; no filesystem or subprocesses."""
     if output_format not in ('png', 'svg'):
         raise ValueError('输出格式必须为 PNG 或 SVG')
+    if args.logo_padding_modules is not None:
+        if type(args.logo_padding_modules) is not int or not 0 <= args.logo_padding_modules <= 8:
+            raise ValueError('logo_padding_modules 必须为 0–8 之间的整数')
+        if args.logo_padding_px is not None:
+            raise ValueError('Logo 留白只能选择像素或码点其中一种单位')
     qr = qrcode.QRCode(version=args.version, error_correction=LEVELS[args.error_correction], box_size=1, border=0)
     qr.add_data(args.content)
     try:
@@ -119,19 +167,8 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
         else:
             logo_x, logo_y = (n-lw)/2, (n-lh)/2
             clearance = (logo_x, logo_y, logo_x + lw, logo_y + lh)
-        padding = 1.25 if args.logo_padding_px is None else args.logo_padding_px * supersample / px
-        clear_left = math.floor(clearance[0]-padding)
-        clear_top = math.floor(clearance[1]-padding)
-        clear_right = math.ceil(clearance[2]+padding)
-        clear_bottom = math.ceil(clearance[3]+padding)
-        # Do not erase alignment patterns, which are structural QR features.
-        positions = qrcode.util.pattern_position(qr.version)
-        for cy in positions:
-            for cx in positions:
-                if (cx <= 8 and cy <= 8) or (cx >= n-9 and cy <= 8) or (cx <= 8 and cy >= n-9):
-                    continue
-                if clear_left < cx+3 and clear_right > cx-2 and clear_top < cy+3 and clear_bottom > cy-2:
-                    raise ValueError('Logo 留白与二维码的定位结构重叠；请减小 Logo 或更换版本')
+        clear_left, clear_top, clear_right, clear_bottom = logo_clearance(
+            clearance, qr.version, n, args.logo_padding_modules, args.logo_padding_px, px / supersample)
     eyes = [(0,0), (n-7,0), (0,n-7)]
     for y, row in enumerate(matrix):
         for x, dark in enumerate(row):
@@ -204,7 +241,8 @@ def main():
                 logo = source.convert('RGBA')
         except (OSError, ValueError) as exc:
             p.error(f'无法读取 Logo: {exc}')
-    settings = QRSettings(**{field: getattr(args, field) for field in QRSettings.__dataclass_fields__ if field != 'logo'}, logo=logo)
+    settings = QRSettings(**{field: getattr(args, field) for field in QRSettings.__dataclass_fields__
+                             if field not in ('logo', 'logo_padding_modules')}, logo=logo)
     try:
         rendered = render_qr(settings, out.suffix.lower()[1:])
         out.parent.mkdir(parents=True, exist_ok=True)

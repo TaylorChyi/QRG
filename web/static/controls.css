@@ -65,12 +65,6 @@
 .check-row input::before { width: 16px; height: 16px; background: var(--surface); }
 .check-row input:checked::before { transform: translateX(14px); }
 .check-row input:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
-.logo-options input[type="range"] { appearance: none; height: 24px; background: transparent; }
-.logo-options input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 9px; background: var(--line); }
-.logo-options input[type="range"]::-moz-range-track { height: 5px; border-radius: 9px; background: var(--line); }
-.logo-options input[type="range"]::-webkit-slider-thumb { appearance: none; width: 17px; height: 17px; margin-top: -6px; border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.logo-options input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.logo-options input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .upload-button { border-radius: 7px; background: var(--raised); }
 
 @media (max-width: 1100px) {

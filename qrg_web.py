@@ -3,16 +3,18 @@ import argparse
 import base64
 import binascii
 import io
+import json
 import math
 import os
 import warnings
+from dataclasses import replace
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory
 from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import HTTPException
 
-from qrg import LogoSizeError, QRSettings, color, render_qr
+from qrg import LogoSizeError, QRSettings, color, logo_options, render_qr
 
 ROOT = Path(__file__).resolve().parent
 MAX_LOGO_BYTES = 2 * 1024 * 1024
@@ -121,6 +123,7 @@ def settings_from_json(data):
         crisp=crisp, logo=logo, logo_scale=logo_scale,
         logo_modules=integer(data, 'logo_modules', None, 1, 44, nullable=True),
         logo_padding_px=integer(data, 'logo_padding_px', None, 0, 128, nullable=True),
+        logo_padding_modules=integer(data, 'logo_padding_modules', None, 0, 8, nullable=True),
     )
 
 
@@ -167,18 +170,39 @@ def render():
     data = request.get_json()
     if not isinstance(data, dict):
         return jsonify(error='请求必须为 JSON 对象'), 400
+    settings = None
+    def available_logo_options():
+        if settings is None:
+            return None
+        try:
+            reference = render_qr(replace(settings, logo=None, logo_modules=None,
+                                          logo_padding_px=None, logo_padding_modules=None), 'svg')
+        except ValueError:
+            return None
+        return logo_options(reference.version, reference.modules)
+
     try:
         output_format = choice(data, 'format', 'png', ('png', 'svg'))
         settings = settings_from_json(data)
         result = render_qr(settings, output_format)
     except LogoSizeError as exc:
-        return jsonify(error=str(exc), max_logo_modules=exc.max_modules), 400
+        details = {'error': str(exc), 'max_logo_modules': exc.max_modules}
+        options = available_logo_options()
+        if options is not None:
+            details['logo_options'] = options
+        return jsonify(details), 400
     except ValueError as exc:
-        return jsonify(error=str(exc)), 400
+        details = {'error': str(exc)}
+        if settings is not None and settings.logo is not None:
+            options = available_logo_options()
+            if options is not None:
+                details['logo_options'] = options
+        return jsonify(details), 400
     headers = {
         'Content-Disposition': f'attachment; filename="qrg.{output_format}"',
         'X-QRG-Version': str(result.version), 'X-QRG-Modules': str(result.modules),
         'X-QRG-Logo-Max-Modules': str(result.modules // 4),
+        'X-QRG-Logo-Options': json.dumps(logo_options(result.version, result.modules), separators=(',', ':')),
     }
     if settings.logo_modules is not None:
         headers['X-QRG-Logo-Modules'] = str(settings.logo_modules)

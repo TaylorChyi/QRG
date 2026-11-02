@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import subprocess
 import sys
 import tempfile
@@ -125,6 +126,38 @@ class WebTests(unittest.TestCase):
         self.assertEqual(accepted.headers['X-QRG-Logo-Max-Modules'], '5')
         self.assertEqual(accepted.headers['X-QRG-Logo-Modules'], '5')
         self.assertEqual(self.render(content='x', version=1).headers['X-QRG-Logo-Max-Modules'], '5')
+
+    def test_logo_size_error_keeps_original_400_when_reference_cannot_fit(self):
+        result = self.render(content='x', version=20, size=64,
+                             logo=logo_data(), logo_modules=30)
+        self.assertEqual(result.status_code, 400)
+        self.assertEqual(result.json['max_logo_modules'], 24)
+        self.assertIn('最多为 24 个码点', result.json['error'])
+
+    def test_logo_options_metadata_and_exact_padding(self):
+        short = self.render(content='x', version=1)
+        larger = self.render(content='x', version=5)
+        self.assertEqual(short.status_code, 200)
+        self.assertEqual(larger.status_code, 200)
+        short_options = json.loads(short.headers['X-QRG-Logo-Options'])
+        larger_options = json.loads(larger.headers['X-QRG-Logo-Options'])
+        self.assertLessEqual(max(map(int, short_options)), 5)
+        self.assertGreater(max(map(int, larger_options)), 5)
+        self.assertNotEqual(short_options, larger_options)
+        for side, paddings in larger_options.items():
+            for padding in paddings:
+                response = self.render(content='x', version=5, logo=logo_data(),
+                                       logo_modules=int(side), logo_padding_modules=padding)
+                self.assertEqual(response.status_code, 200, (side, padding, response.json))
+        rejected = self.render(content='x', version=1, logo=logo_data(),
+                               logo_modules=5, logo_padding_modules=2)
+        if 2 not in short_options.get('5', []):
+            self.assertEqual(rejected.status_code, 400)
+            self.assertEqual(rejected.json['logo_options'], short_options)
+        ambiguous = self.render(logo=logo_data(), logo_modules=2,
+                                logo_padding_modules=1, logo_padding_px=1)
+        self.assertEqual(ambiguous.status_code, 400)
+        self.assertIn('只能选择', ambiguous.json['error'])
 
     def test_logo_crop_selects_source_pixels_before_embedding(self):
         source = Image.new('RGB', (40, 20), '#ff0000')

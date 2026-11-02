@@ -7,7 +7,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from PIL import Image
-from qrg import QRSettings, render_qr
+from qrg import QRSettings, logo_options, render_qr
 
 ROOT = Path(__file__).resolve().parents[1]
 URL = 'https://app.huawei.com/qr/Ayb-zA-S3XC'
@@ -147,6 +147,47 @@ class QRTests(unittest.TestCase):
                               '--logo-modules', 2, '--logo-padding-px', 0)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('定位结构重叠', result.stderr)
+
+    def test_module_padding_clears_exact_cell_rings(self):
+        icon = Image.new('RGBA', (40, 20), (250, 0, 0, 128))
+        base = QRSettings(content='x', version=1, error_correction='H', margin=4,
+                          size=290, logo=icon, logo_modules=2)
+        reference = module_rects(render_qr(QRSettings(**{**base.__dict__, 'logo': None}), 'svg').data, 4)
+        for padding in (0, 1, 2):
+            with self.subTest(padding=padding):
+                settings = QRSettings(**{**base.__dict__, 'logo_padding_modules': padding})
+                actual = module_rects(render_qr(settings, 'svg').data, 4)
+                left, right = 9 - padding, 11 + padding
+                self.assertEqual(actual, {cell for cell in reference if not
+                                 (left <= cell[0] < right and left <= cell[1] < right)})
+        with self.assertRaisesRegex(ValueError, '只能选择'):
+            render_qr(QRSettings(**{**base.__dict__, 'logo_padding_px': 1,
+                                    'logo_padding_modules': 1}), 'svg')
+
+    def test_logo_options_match_real_renderability(self):
+        icon = Image.new('RGB', (10, 10), '#e34b40')
+        for version in (1, 5, 7, 15):
+            with self.subTest(version=version):
+                modules = 17 + 4 * version
+                options = logo_options(version, modules)
+                if version == 7:
+                    self.assertEqual(options, {}, 'central alignment pattern leaves no valid slot')
+                else:
+                    self.assertTrue(options)
+                for side in (2, 3, 5, 7, 9, 11, 15, modules // 4):
+                    if side > modules // 4:
+                        continue
+                    for padding in (0, 1, 2):
+                        settings = QRSettings(content='x', version=version, size=1024,
+                                              logo=icon, logo_modules=side,
+                                              logo_padding_modules=padding)
+                        allowed = padding in options.get(str(side), [])
+                        try:
+                            render_qr(settings, 'svg')
+                        except ValueError:
+                            self.assertFalse(allowed, (version, side, padding))
+                        else:
+                            self.assertTrue(allowed, (version, side, padding))
 
     def test_rejects_insufficient_version(self):
         out = self.folder/'out.png'

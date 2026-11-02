@@ -10,8 +10,6 @@ const sizes = [
   [1440, 900], [1280, 720], [1024, 768], [800, 600],
   [768, 1024], [390, 844], [375, 667], [320, 568], [844, 390], [667, 375],
 ];
-const tabs = ['content', 'style', 'logo', 'advanced'];
-
 async function geometry(page) {
   return page.evaluate(() => {
     const form = document.querySelector('#editor-form');
@@ -24,17 +22,20 @@ async function geometry(page) {
       const rect = element.getBoundingClientRect();
       return rect.width > 0 && rect.height > 0 && rect.left >= -1 && rect.right <= innerWidth + 1 && rect.top >= -1 && rect.bottom <= innerHeight + 1;
     };
-    const controls = [...document.querySelectorAll('.editor-panel:not([hidden]) button, .editor-panel:not([hidden]) textarea, .editor-panel:not([hidden]) input:not(.qrg-native-control), .editor-panel:not([hidden]) .upload-button, .editor-panel:not([hidden]) .check-row')]
+    const controls = [...document.querySelectorAll('#editor-form button, #editor-form textarea, #editor-form input:not(.qrg-native-control), #editor-form .upload-button, #editor-form .check-row')]
       .filter(element => visible(element) && !element.hidden);
     return {
       pageX: root.scrollWidth - innerWidth,
       pageY: root.scrollHeight - innerHeight,
-      formScroll: form.scrollHeight - form.clientHeight,
+      formOverflowX: form.scrollWidth - form.clientWidth,
       previewVisible: visible(preview),
       cardFits: !visible(preview) || within(card),
       exportFits: !visible(preview) || within(exportPanel),
       editorFits: within(form),
-      clippedControls: controls.filter(element => !within(element)).map(element => element.id || element.className || element.tagName),
+      horizontallyClippedControls: controls.filter(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && (rect.left < -1 || rect.right > innerWidth + 1);
+      }).map(element => element.id || element.className || element.tagName),
     };
   });
 }
@@ -52,30 +53,29 @@ async function main() {
     for (const [width, height] of sizes) {
       await page.setViewportSize({ width, height });
       const narrow = await page.locator('.workspace-views').isVisible();
-      for (const tab of tabs) {
-        await page.locator(`#tab-${tab}`).click();
-        const measure = await geometry(page);
-        assert.ok(measure.pageX <= 1 && measure.pageY <= 1, `${width}×${height} ${tab}: page overflow ${JSON.stringify(measure)}`);
-        assert.ok(measure.editorFits, `${width}×${height} ${tab}: editor clipped ${JSON.stringify(measure)}`);
-        assert.ok(measure.formScroll <= 1, `${width}×${height} ${tab}: editor scroll ${JSON.stringify(measure)}`);
-        assert.deepEqual(measure.clippedControls, [], `${width}×${height} ${tab}: controls clipped`);
-        if (!narrow) {
-          assert.ok(measure.cardFits && measure.exportFits, `${width}×${height} ${tab}: preview/export clipped ${JSON.stringify(measure)}`);
-        }
-      }
+      const measure = await geometry(page);
+      assert.ok(measure.pageX <= 1 && measure.pageY <= 1, `${width}×${height}: page overflow ${JSON.stringify(measure)}`);
+      assert.ok(measure.editorFits && measure.formOverflowX <= 1, `${width}×${height}: editor overflow ${JSON.stringify(measure)}`);
+      assert.deepEqual(measure.horizontallyClippedControls, [], `${width}×${height}: controls clipped horizontally`);
+      if (!narrow) assert.ok(measure.cardFits && measure.exportFits, `${width}×${height}: preview/export clipped ${JSON.stringify(measure)}`);
+      const lastSetting = page.locator('#version').locator('xpath=following-sibling::button[1]');
+      await lastSetting.scrollIntoViewIfNeeded();
+      assert.ok(await lastSetting.isVisible(), `${width}×${height}: final editor setting cannot be reached`);
       if (narrow) {
         await page.locator('button[data-view="preview"]').click();
         const measure = await geometry(page);
         assert.ok(measure.pageX <= 1 && measure.pageY <= 1 && measure.cardFits && measure.exportFits,
           `${width}×${height}: preview/export clipped ${JSON.stringify(measure)}`);
         assert.ok(await page.locator('#download-png').isVisible(), `${width}×${height}: PNG export unavailable`);
+        assert.ok(await page.locator('#size').locator('xpath=following-sibling::button[1]').isVisible(), `${width}×${height}: export size unavailable`);
+        assert.ok(await page.locator('#margin').locator('xpath=following-sibling::button[1]').isVisible(), `${width}×${height}: export margin unavailable`);
         await page.locator('button[data-view="editor"]').click();
       }
       process.stdout.write(`layout ${width}×${height} ok\n`);
     }
 
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.locator('#tab-style').click();
+    assert.equal(await page.locator('[role="tablist"], [role="tab"], [data-preset]').count(), 0);
     const theme = page.locator('#theme').locator('xpath=following-sibling::button[1]');
     await theme.click();
     await page.locator('.qrg-listbox [role="option"]').filter({ hasText: '深色' }).click();
@@ -117,12 +117,14 @@ async function main() {
     await page.locator('#undo').click();
     assert.notEqual((await page.locator('#color').inputValue()).toLowerCase(), '#123abc');
 
-    await page.locator('#tab-advanced').click();
     const sizeSelect = page.getByRole('combobox', { name: /^导出尺寸/ });
     const marginSelect = page.getByRole('combobox', { name: /^边距/ });
     assert.equal(await page.locator('#size').inputValue(), '1024');
     assert.equal(await page.locator('#margin').inputValue(), '4');
-    assert.equal(await page.locator('#panel-advanced .qrg-stepper').count(), 0);
+    assert.equal(await page.locator('#editor-form .qrg-stepper').count(), 0);
+    assert.equal(await page.locator('.export-panel #size').count(), 1);
+    assert.equal(await page.locator('.export-panel #margin').count(), 1);
+    assert.equal(await page.locator('.export-panel #crisp').count(), 1);
     await sizeSelect.click();
     assert.deepEqual(await page.getByRole('option').allTextContents(), ['256', '512', '1024', '2048', '4096']);
     await page.getByRole('option', { name: '512', exact: true }).click();
@@ -149,25 +151,27 @@ async function main() {
 
     const versionSelect = page.locator('#version').locator('xpath=following-sibling::button[1]');
     await versionSelect.click();
-    assert.equal(await page.locator('.qrg-listbox [role="option"]').count(), 41);
+    assert.deepEqual(await page.getByRole('option').allTextContents(), ['自动选择', '1 · 21 × 21', '3 · 29 × 29', '5 · 37 × 37', '10 · 57 × 57']);
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('.qrg-listbox').count(), 0);
 
-    await page.locator('#tab-logo').click();
+    assert.equal(await page.locator('#logo-options').isVisible(), false);
     await page.locator('#logo-file').setInputFiles('assets/icon.png');
     await page.locator('#apply-logo-crop').click();
     await page.locator('#remove-logo').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#logo-modules').isDisabled(), false);
+    assert.equal(await page.locator('#logo-options').isVisible(), true);
     await page.setViewportSize({ width: 320, height: 568 });
     const logoGeometry = await geometry(page);
-    assert.ok(logoGeometry.formScroll <= 1, `uploaded logo must fit: ${JSON.stringify(logoGeometry)}`);
-    assert.deepEqual(logoGeometry.clippedControls, [], 'uploaded logo controls must remain visible');
+    assert.ok(logoGeometry.formOverflowX <= 1, `uploaded logo must not overflow horizontally: ${JSON.stringify(logoGeometry)}`);
+    await page.locator('#logo-padding-modules').locator('xpath=following-sibling::button[1]').scrollIntoViewIfNeeded();
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.locator('#logo-modules').focus();
-    for (let step = 0; step < 2; step += 1) await page.keyboard.press('ArrowLeft');
-    assert.equal(await page.locator('#logo-modules-value').textContent(), '3 × 3 格');
+    const logoSizeSelect = page.locator('#logo-modules').locator('xpath=following-sibling::button[1]');
+    await logoSizeSelect.click();
+    await page.getByRole('option', { name: '3 × 3 格' }).click();
+    assert.equal(await page.locator('#logo-modules').inputValue(), '3');
     await page.locator('#remove-logo').click();
-    assert.equal(await page.locator('#logo-modules').isDisabled(), true);
+    assert.equal(await page.locator('#logo-options').isVisible(), false);
 
     await page.locator('#preview-image').waitFor({ state: 'visible', timeout: 20000 });
     await page.locator('#download-png').waitFor({ state: 'visible' });

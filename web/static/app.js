@@ -6,7 +6,7 @@
     content: $('content'), color: $('color'), background: $('background'), transparent: $('transparent'),
     module_shape: $('module-shape'), eye_shape: $('eye-shape'), margin: $('margin'),
     error_correction: $('error-correction'), version: $('version'), size: $('size'), crisp: $('crisp'),
-    logo_modules: $('logo-modules'), logo_padding_px: $('logo-padding-px'),
+    logo_modules: $('logo-modules'), logo_padding_modules: $('logo-padding-modules'),
   };
   const preview = $('preview-image');
   const placeholder = $('preview-placeholder');
@@ -17,19 +17,11 @@
   const undoButton = $('undo');
   const redoButton = $('redo');
   const logoFile = $('logo-file');
-  const tabs = [...document.querySelectorAll('[role="tab"][data-panel]')];
-  const presetButtons = [...document.querySelectorAll('[data-preset]')];
-  const presets = {
-    classic: { color: '#000000', background: '#ffffff', transparent: false, module_shape: 'tile', eye_shape: 'rounded' },
-    indigo: { color: '#4338ca', background: '#ffffff', transparent: false, module_shape: 'tile', eye_shape: 'rounded' },
-    forest: { color: '#146c53', background: '#ffffff', transparent: false, module_shape: 'circle', eye_shape: 'rounded' },
-    clay: { color: '#9a482f', background: '#fff8f0', transparent: false, module_shape: 'tile', eye_shape: 'rounded' },
-  };
-  const numberBounds = { margin: [0, 32], size: [64, 4096], logo_padding_px: [0, 128], logo_modules: [1, 44] };
+  const numericSettings = new Set(['margin', 'size', 'logo_modules', 'logo_padding_modules']);
   const initial = {
     content: 'https://example.com', color: '#000000', background: '#ffffff', transparent: false,
     module_shape: 'tile', eye_shape: 'rounded', margin: 4, error_correction: 'H', version: null,
-    size: 1024, crisp: false, logo: null, logo_name: '', logo_crop: null, logo_modules: 5, logo_padding_px: 1,
+    size: 1024, crisp: false, logo: null, logo_name: '', logo_crop: null, logo_modules: 5, logo_padding_modules: 1,
   };
 
   let settings = { ...initial };
@@ -47,13 +39,30 @@
   let displayedLogo = null;
   let displayedCrop = null;
   let logoReadToken = 0;
-  const invalidInputs = new Set();
+  let logoOptions = null;
 
-  for (let v = 1; v <= 40; v += 1) {
-    const option = document.createElement('option');
-    option.value = String(v);
-    option.textContent = `${v} · ${17 + 4 * v} × ${17 + 4 * v}`;
-    controls.version.append(option);
+  function adoptLogoOptions(options) {
+    if (!options || typeof options !== 'object' || Array.isArray(options)) return false;
+    logoOptions = options;
+    const sizes = Object.keys(options).map(Number).sort((a, b) => a - b);
+    if (!sizes.length) return false;
+    const side = options[settings.logo_modules]?.length ? settings.logo_modules
+      : sizes.filter(value => value <= settings.logo_modules).at(-1) ?? sizes[0];
+    const paddings = options[side];
+    const padding = paddings.includes(settings.logo_padding_modules) ? settings.logo_padding_modules
+      : paddings.filter(value => value <= settings.logo_padding_modules).at(-1) ?? paddings[0];
+    if (side === settings.logo_modules && padding === settings.logo_padding_modules) return false;
+    settings = { ...settings, logo_modules: side, logo_padding_modules: padding };
+    return true;
+  }
+
+  function syncOptions(control, values, value, label) {
+    const entries = [...new Set([...values, value])].sort((a, b) => a - b);
+    if (entries.join(',') !== [...control.options].map(option => option.value).join(',')) {
+      window.QRGControls?.close();
+      control.replaceChildren(...entries.map(number => new Option(label(number), String(number))));
+    }
+    control.value = String(value);
   }
 
   function announce(message = '', kind = '') {
@@ -64,7 +73,7 @@
   function refreshButtons() {
     undoButton.disabled = past.length === 0;
     redoButton.disabled = future.length === 0;
-    const canExport = readyBlob !== null && readyRevision === revision && !busyExport && invalidInputs.size === 0;
+    const canExport = readyBlob !== null && readyRevision === revision && !busyExport;
     pngButton.disabled = !canExport;
     svgButton.disabled = !canExport;
   }
@@ -77,33 +86,26 @@
     controls.background.disabled = settings.transparent;
     controls.module_shape.value = settings.module_shape;
     controls.eye_shape.value = settings.eye_shape;
-    if (!invalidInputs.has('margin')) controls.margin.value = String(settings.margin);
+    controls.margin.value = String(settings.margin);
     controls.error_correction.value = settings.error_correction;
     controls.version.value = settings.version === null ? 'auto' : String(settings.version);
-    if (!invalidInputs.has('size')) controls.size.value = String(settings.size);
+    controls.size.value = String(settings.size);
     controls.crisp.checked = settings.crisp;
-    numberBounds.logo_modules[1] = Math.max(numberBounds.logo_modules[1], settings.logo_modules);
-    controls.logo_modules.max = String(numberBounds.logo_modules[1]);
-    if (!invalidInputs.has('logo_modules')) controls.logo_modules.value = String(settings.logo_modules);
-    if (!invalidInputs.has('logo_padding_px')) controls.logo_padding_px.value = String(settings.logo_padding_px);
-    for (const key of Object.keys(numberBounds)) controls[key].setAttribute('aria-invalid', invalidInputs.has(key) ? 'true' : 'false');
-    controls.logo_modules.disabled = !settings.logo;
-    controls.logo_padding_px.disabled = !settings.logo;
+    syncOptions(controls.logo_modules, Object.keys(logoOptions || {}).map(Number), settings.logo_modules, value => `${value} × ${value} 格`);
+    syncOptions(controls.logo_padding_modules, logoOptions?.[settings.logo_modules] || [0, 1, 2], settings.logo_padding_modules, String);
+    const logoUnavailable = !settings.logo || logoOptions !== null && Object.keys(logoOptions).length === 0;
+    controls.logo_modules.disabled = logoUnavailable;
+    controls.logo_padding_modules.disabled = logoUnavailable;
+    $('logo-options').hidden = !settings.logo;
     $('color-value').textContent = settings.color.toUpperCase();
     $('background-value').textContent = settings.background.toUpperCase();
-    const logoSize = `${settings.logo_modules} × ${settings.logo_modules} 格`;
-    $('logo-modules-value').textContent = logoSize;
-    controls.logo_modules.setAttribute('aria-valuetext', logoSize);
-    $('logo-name').textContent = settings.logo_name || '未选择图片';
+    $('logo-name').textContent = settings.logo_name || '选择图片';
+    $('logo-thumb').hidden = !settings.logo;
+    $('logo-placeholder').hidden = Boolean(settings.logo);
     $('content-count').textContent = `${settings.content.length} / 4096`;
-    for (const button of presetButtons) {
-      const preset = presets[button.dataset.preset];
-      const selected = preset && Object.entries(preset).every(([key, value]) => settings[key] === value);
-      button.classList.toggle('is-selected', Boolean(selected));
-      button.setAttribute('aria-pressed', String(Boolean(selected)));
-    }
     $('remove-logo').hidden = !settings.logo;
     $('edit-logo-crop').hidden = !settings.logo;
+    $('remove-logo').parentElement.hidden = !settings.logo;
     if (settings.logo !== displayedLogo || settings.logo_crop !== displayedCrop) {
       const thumb = $('logo-thumb');
       thumb.replaceChildren();
@@ -123,8 +125,6 @@
           thumb.replaceChildren(canvas);
         };
         image.src = source;
-      } else {
-        thumb.textContent = '＋';
       }
       displayedLogo = settings.logo;
       displayedCrop = settings.logo_crop;
@@ -150,11 +150,6 @@
       announce();
       return;
     }
-    if (invalidInputs.size) {
-      stage.classList.remove('is-loading');
-      announce('请修正超出范围的数值。', 'error');
-      return;
-    }
     announce('正在更新预览…');
     const targetRevision = revision;
     renderTimer = setTimeout(() => render(targetRevision), 320);
@@ -170,6 +165,7 @@
     future = [];
     lastEdit = { key: coalesce ? key : null, time: now };
     settings = { ...settings, [key]: value };
+    if (key === 'logo_modules') adoptLogoOptions(logoOptions);
     syncControls();
     invalidate();
   }
@@ -182,7 +178,6 @@
     if (to.length > 40) to.shift();
     settings = from.pop();
     lastEdit = { key: null, time: 0 };
-    invalidInputs.clear();
     syncControls();
     invalidate();
   }
@@ -195,7 +190,7 @@
       margin: settings.margin, error_correction: settings.error_correction,
       version: settings.version, size: settings.size, crisp: settings.crisp,
       logo: settings.logo, logo_modules: settings.logo_modules,
-      logo_crop: settings.logo_crop, logo_padding_px: settings.logo_padding_px, format,
+      logo_crop: settings.logo_crop, logo_padding_modules: settings.logo_padding_modules, format,
     };
   }
 
@@ -207,11 +202,11 @@
     if (!response.ok) {
       const data = await response.json().catch(() => null);
       const error = new Error(data?.error || `生成失败（HTTP ${response.status}）`);
-      error.maxLogoModules = data?.max_logo_modules;
+      error.logoOptions = data?.logo_options;
       throw error;
     }
     return { blob: await response.blob(),
-      maxLogoModules: Number(response.headers.get('X-QRG-Logo-Max-Modules')) };
+      logoOptions: JSON.parse(response.headers.get('X-QRG-Logo-Options') || 'null') };
   }
 
   async function render(targetRevision) {
@@ -220,10 +215,8 @@
     try {
       const result = await requestImage('png', controller.signal);
       if (targetRevision !== revision) return;
-      if (Number.isInteger(result.maxLogoModules) && result.maxLogoModules >= 1 && result.maxLogoModules <= 44) {
-        numberBounds.logo_modules[1] = result.maxLogoModules;
-        syncControls();
-      }
+      if (adoptLogoOptions(result.logoOptions)) { syncControls(); invalidate(); return; }
+      syncControls();
       const nextUrl = URL.createObjectURL(result.blob);
       const previousUrl = imageUrl;
       imageUrl = nextUrl;
@@ -238,14 +231,8 @@
       if (previousUrl) URL.revokeObjectURL(previousUrl);
     } catch (error) {
       if (targetRevision !== revision || error.name === 'AbortError') return;
-      if (Number.isInteger(error.maxLogoModules) && error.maxLogoModules >= 1 && error.maxLogoModules <= 44 && settings.logo_modules > error.maxLogoModules) {
-        numberBounds.logo_modules[1] = error.maxLogoModules;
-        settings = { ...settings, logo_modules: error.maxLogoModules };
-        invalidInputs.delete('logo_modules');
-        syncControls();
-        invalidate();
-        return;
-      }
+      if (adoptLogoOptions(error.logoOptions)) { syncControls(); invalidate(); return; }
+      syncControls();
       stage.classList.remove('is-loading');
       preview.hidden = true;
       placeholder.hidden = false;
@@ -290,73 +277,10 @@
   for (const [key, control] of Object.entries(controls)) {
     const event = control.tagName === 'SELECT' || control.type === 'checkbox' ? 'change' : 'input';
     control.addEventListener(event, () => {
-      if (key in numberBounds) {
-        const [min, max] = numberBounds[key];
-        const value = Number(control.value);
-        if (control.value === '' || !Number.isInteger(value) || value < min || value > max) {
-          invalidInputs.add(key);
-          control.setAttribute('aria-invalid', 'true');
-          invalidate();
-          return;
-        }
-        const wasInvalid = invalidInputs.delete(key);
-        const changed = settings[key] !== value;
-        update(key, value, key === 'logo_modules');
-        if (wasInvalid && !changed) invalidate();
-        return;
-      }
       const value = control.type === 'checkbox' ? control.checked : control.value;
-      update(key, key === 'version' ? value === 'auto' ? null : Number(value) : value,
+      update(key, numericSettings.has(key) ? Number(value)
+        : key === 'version' ? value === 'auto' ? null : Number(value) : value,
         key === 'content' || key === 'color' || key === 'background');
-    });
-    if (key in numberBounds) control.addEventListener('blur', () => {
-      if (invalidInputs.has(key)) {
-        invalidInputs.delete(key);
-        control.setAttribute('aria-invalid', 'false');
-        control.value = String(settings[key]);
-        window.QRGControls?.sync();
-        invalidate();
-      }
-    });
-  }
-
-  function activateTab(tab, focus = false) {
-    for (const item of tabs) {
-      const active = item === tab;
-      item.setAttribute('aria-selected', String(active));
-      item.tabIndex = active ? 0 : -1;
-      const panel = $(item.dataset.panel);
-      if (panel) panel.hidden = !active;
-    }
-    if (focus) tab.focus();
-  }
-
-  for (const tab of tabs) {
-    tab.addEventListener('click', () => activateTab(tab));
-    tab.addEventListener('keydown', (event) => {
-      const index = tabs.indexOf(tab);
-      let next;
-      if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
-      else if (event.key === 'ArrowLeft') next = tabs[(index - 1 + tabs.length) % tabs.length];
-      else if (event.key === 'Home') next = tabs[0];
-      else if (event.key === 'End') next = tabs[tabs.length - 1];
-      else return;
-      event.preventDefault();
-      activateTab(next, true);
-    });
-  }
-
-  for (const button of presetButtons) {
-    button.addEventListener('click', () => {
-      const preset = presets[button.dataset.preset];
-      if (!preset || Object.entries(preset).every(([key, value]) => settings[key] === value)) return;
-      past.push({ ...settings });
-      if (past.length > 40) past.shift();
-      future = [];
-      lastEdit = { key: null, time: 0 };
-      settings = { ...settings, ...preset };
-      syncControls();
-      invalidate();
     });
   }
 
@@ -395,8 +319,6 @@
     if (past.length > 40) past.shift();
     future = [];
     lastEdit = { key: null, time: 0 };
-    invalidInputs.delete('logo_modules');
-    invalidInputs.delete('logo_padding_px');
     settings = { ...settings, ...values };
     syncControls();
     invalidate();
@@ -416,8 +338,6 @@
     if (past.length > 40) past.shift();
     future = [];
     lastEdit = { key: null, time: 0 };
-    invalidInputs.delete('logo_modules');
-    invalidInputs.delete('logo_padding_px');
     settings = { ...settings, logo: null, logo_name: '', logo_crop: null };
     syncControls();
     invalidate();

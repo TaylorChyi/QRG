@@ -92,11 +92,8 @@ async function setCrop(page, { x, y, width, height }) {
   }
 }
 
-async function setRange(page, selector, value) {
-  await page.locator(selector).evaluate((element, next) => {
-    element.value = String(next);
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-  }, value);
+async function chooseSetting(page, selector, value) {
+  await page.locator(selector).selectOption(String(value));
 }
 
 async function cropFields(page) {
@@ -125,11 +122,9 @@ async function main() {
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' });
     await ready(page);
-    await page.locator('#tab-advanced').click();
     const version = page.locator('#version');
     await version.selectOption('5');
     await ready(page);
-    await page.locator('#tab-logo').click();
     const icon = await syntheticIcon(page);
     const originalHash = await previewHash(page);
 
@@ -154,11 +149,13 @@ async function main() {
     const centre = await previewCentre(page);
     assert.ok(centre[2] > 200 && centre[0] < 40 && centre[1] < 40, `cropped preview centre is not blue: ${centre}`);
 
-    await page.locator('#logo-padding-px').fill('0');
-    await setRange(page, '#logo-modules', 2);
+    await chooseSetting(page, '#logo-padding-modules', 0);
+    await chooseSetting(page, '#logo-modules', 2);
     await ready(page);
     const twoCells = await latestPayload(requests);
-    assert.equal(await page.locator('#logo-modules-value').textContent(), '2 × 2 格');
+    assert.equal(await page.locator('#logo-modules').inputValue(), '2');
+    assert.equal(twoCells.logo_padding_modules, 0);
+    assert.equal('logo_padding_px' in twoCells, false);
     const cell = Math.floor(twoCells.size / (37 + twoCells.margin * 2));
     const offset = (twoCells.size - (37 + twoCells.margin * 2) * cell) / 2;
     const edge = offset + (twoCells.margin + Math.floor((37 - 2) / 2)) * cell;
@@ -166,22 +163,22 @@ async function main() {
       left: edge, top: edge, right: edge + cell * 2 - 1, bottom: edge + cell * 2 - 1,
     }, '2×2 Logo at zero padding must change exactly two grid rows and columns');
 
-    await setRange(page, '#logo-modules', 3);
+    await chooseSetting(page, '#logo-modules', 3);
     await ready(page);
     const smallHash = await previewHash(page);
-    await setRange(page, '#logo-modules', 7);
+    await chooseSetting(page, '#logo-modules', 7);
     await ready(page);
     assert.notEqual(await previewHash(page), smallHash, 'small uploaded icon ignores Logo module count');
     assert.equal((await latestPayload(requests)).logo_modules, 7);
     assert.equal('logo_scale' in (await latestPayload(requests)), false);
-    assert.equal(await page.locator('#logo-modules-value').textContent(), '7 × 7 格');
-    await page.locator('#logo-padding-px').fill('0');
+    assert.equal(await page.locator('#logo-modules').inputValue(), '7');
+    await chooseSetting(page, '#logo-padding-modules', 0);
     await ready(page);
     const tightHash = await previewHash(page);
-    await page.locator('#logo-padding-px').fill('64');
+    await chooseSetting(page, '#logo-padding-modules', 2);
     await ready(page);
     assert.notEqual(await previewHash(page), tightHash, 'Logo clearance did not change preview');
-    assert.equal((await latestPayload(requests)).logo_padding_px, 64);
+    assert.equal((await latestPayload(requests)).logo_padding_modules, 2);
 
     await page.locator('#edit-logo-crop').click();
     await page.locator('#logo-crop-dialog').waitFor({ state: 'visible' });
@@ -291,18 +288,16 @@ async function main() {
     assert.ok(squareGeometry.dialogOverflowX <= 1, `square-image dialog has horizontal overflow: ${JSON.stringify(squareGeometry)}`);
     await page.locator('#cancel-logo-crop').click();
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.locator('#tab-content').click();
     await page.locator('#content').fill('A');
-    await page.locator('#tab-advanced').click();
     await page.locator('#version').selectOption('1');
     await ready(page);
     assert.equal((await latestPayload(requests)).logo_modules, 5, 'smaller QR must cap Logo to five cells');
-    assert.equal(await page.locator('#logo-modules').getAttribute('max'), '5');
-    assert.equal(await page.locator('#logo-modules-value').textContent(), '5 × 5 格');
+    assert.equal(await page.locator('#logo-modules').inputValue(), '5');
+    assert.deepEqual(await page.locator('#logo-modules option').allTextContents(), ['2 × 2 格', '3 × 3 格', '5 × 5 格']);
     await page.locator('#undo').click();
     await ready(page);
     assert.equal((await latestPayload(requests)).logo_modules, 7, 'undo must restore previous module count');
-    assert.equal(await page.locator('#logo-modules').getAttribute('max'), '9');
+    assert.ok((await page.locator('#logo-modules option').allTextContents()).includes('7 × 7 格'));
     await page.locator('#redo').click();
     await ready(page);
     assert.equal((await latestPayload(requests)).logo_modules, 5);
