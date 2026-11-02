@@ -9,8 +9,13 @@ APP="$ROOT/build/QRG.app"
 BIN="$APP/Contents/MacOS/QRG"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$ROOT/assets/icon.icns" "$APP/Contents/Resources/QRG.icns"
-if [ ! -x "$BIN" ] || [ "$ROOT/Sources/QRGApp.swift" -nt "$BIN" ]; then
-  /usr/bin/swiftc -parse-as-library -O "$ROOT/Sources/QRGApp.swift" -o "$BIN"
+SOURCES=("$ROOT"/Sources/*.swift)
+REBUILD=false
+for source in "${SOURCES[@]}"; do
+  if [ ! -x "$BIN" ] || [ "$source" -nt "$BIN" ]; then REBUILD=true; fi
+done
+if $REBUILD; then
+  /usr/bin/swiftc -parse-as-library -O "${SOURCES[@]}" -o "$BIN"
 fi
 cat > "$APP/Contents/Info.plist" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -25,5 +30,6 @@ cat > "$APP/Contents/Info.plist" <<'EOF'
 </dict></plist>
 EOF
 if [[ "${1:-}" != "--build-only" ]]; then
-  /usr/bin/open -n "$APP" --args "$ROOT"
+  # Keep the launcher's project access for CLI children on external volumes.
+  exec "$BIN" "$ROOT"
 fi

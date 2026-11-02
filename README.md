@@ -71,11 +71,13 @@ Logo 支持 PNG、JPEG 等 Pillow 能读取的图片；`--logo-scale` 是 Logo �
 
 ## macOS 图形界面
 
-运行 `./script/run-gui`，或在 Codex 项目的 Actions 里选择「Mac · 打开 QRG」。首次运行会编译本机应用；生成二维码时使用同一套 QRG CLI。输入链接、调整样式、点击「生成预览」，再导出 PNG 或 SVG。更改设置后须重新生成预览才能导出。非透明背景的预览和 PNG 导出会用 macOS Vision 验证；透明背景和 SVG 需要在实际使用环境中扫码确认。
+运行 `./script/run-gui`，或在 Codex 项目的 Actions 里选择「Mac · 打开 QRG」。首次运行会编译本机应用；生成二维码时使用同一套 QRG CLI。打开后自动生成预览，修改内容、样式、规格或 Logo 后也会自动更新，无需点击生成按钮。连续输入或拖动时会在短暂停顿后更新，更新完成后可导出 PNG 或 SVG。预览右上角的「后退」「前进」可撤销和重做设置修改；后退后进行新修改会清除前进记录。非透明背景的预览和 PNG 导出会用 macOS Vision 验证；透明背景和 SVG 需要在实际使用环境中扫码确认。
 
 图形界面跟随 macOS 的浅色或深色外观。应用位于项目的 `build/QRG.app`，启动脚本负责传入项目路径；依赖和项目目录须保持可用。
 
 构建图形界面需要安装 Xcode Command Line Tools（`xcode-select --install`）。只构建、不打开窗口时可运行 `./script/run-gui --build-only`。
+
+运行 `./script/test-gui` 可检查自动预览的连续修改、过期结果处理、导出一致性以及后退和前进。
 
 ## 应用图标
 
