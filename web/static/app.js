@@ -12,8 +12,6 @@
   const placeholder = $('preview-placeholder');
   const stage = $('preview-stage');
   const status = $('status');
-  const statusBox = status.parentElement;
-  const details = $('qr-details');
   const pngButton = $('download-png');
   const svgButton = $('download-svg');
   const undoButton = $('undo');
@@ -58,9 +56,9 @@
     controls.version.append(option);
   }
 
-  function announce(message, kind = '') {
+  function announce(message = '', kind = '') {
     status.textContent = message;
-    statusBox.className = `preview-meta${kind ? ` is-${kind}` : ''}`;
+    status.className = kind === 'error' ? 'preview-error' : 'visually-hidden';
   }
 
   function refreshButtons() {
@@ -98,7 +96,6 @@
     controls.logo_modules.setAttribute('aria-valuetext', logoSize);
     $('logo-name').textContent = settings.logo_name || '未选择图片';
     $('content-count').textContent = `${settings.content.length} / 4096`;
-    $('preview-size').textContent = `${settings.size} × ${settings.size} px`;
     for (const button of presetButtons) {
       const preset = presets[button.dataset.preset];
       const selected = preset && Object.entries(preset).every(([key, value]) => settings[key] === value);
@@ -150,8 +147,7 @@
       preview.hidden = true;
       placeholder.hidden = false;
       placeholder.lastElementChild.textContent = '输入链接或文字后自动生成';
-      details.textContent = '';
-      announce('输入链接或文字后会自动生成预览。');
+      announce();
       return;
     }
     if (invalidInputs.size) {
@@ -214,7 +210,7 @@
       error.maxLogoModules = data?.max_logo_modules;
       throw error;
     }
-    return { blob: await response.blob(), version: response.headers.get('X-QRG-Version'), modules: response.headers.get('X-QRG-Modules'),
+    return { blob: await response.blob(),
       maxLogoModules: Number(response.headers.get('X-QRG-Logo-Max-Modules')) };
   }
 
@@ -237,8 +233,7 @@
       stage.classList.remove('is-loading');
       readyBlob = result.blob;
       readyRevision = targetRevision;
-      details.textContent = result.version && result.modules ? `版本 ${result.version} · ${result.modules} × ${result.modules} 码点` : '';
-      announce(settings.transparent ? '预览已就绪 · 透明背景' : '预览已就绪', 'ready');
+      announce();
       refreshButtons();
       if (previousUrl) URL.revokeObjectURL(previousUrl);
     } catch (error) {
@@ -255,7 +250,6 @@
       preview.hidden = true;
       placeholder.hidden = false;
       placeholder.lastElementChild.textContent = '预览生成失败';
-      details.textContent = '';
       announce(error instanceof TypeError ? '无法连接 QRG 服务，请检查服务是否正在运行。' : error.message, 'error');
       refreshButtons();
     }
@@ -283,7 +277,7 @@
       const result = await requestImage('svg', exportController.signal);
       if (targetRevision !== revision) return;
       download(result.blob, '二维码.svg');
-      announce('SVG 已导出', 'ready');
+      announce('SVG 已导出');
     } catch (error) {
       if (targetRevision !== revision || error.name === 'AbortError') return;
       announce(error instanceof TypeError ? '无法连接 QRG 服务，请检查服务是否正在运行。' : error.message, 'error');
@@ -434,7 +428,7 @@
   pngButton.addEventListener('click', () => {
     if (!pngButton.disabled && readyBlob && readyRevision === revision) {
       download(readyBlob, '二维码.png');
-      announce('PNG 已导出', 'ready');
+      announce('PNG 已导出');
     }
   });
   svgButton.addEventListener('click', exportSvg);

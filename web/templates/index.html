@@ -7,9 +7,7 @@
   {% elif name == 'download' %}<path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5"/>
   {% elif name == 'undo' %}<path d="M9 5 4 10l5 5M4 10h10a6 6 0 0 1 6 6v3"/>
   {% elif name == 'redo' %}<path d="m15 5 5 5-5 5m5-5H10a6 6 0 0 0-6 6v3"/>
-  {% elif name == 'spark' %}<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/>
   {% elif name == 'screen' %}<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>
-  {% elif name == 'shield' %}<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/>
   {% elif name == 'qr' %}<rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M15 15h3v3h3m-6 3h3m3-6v-3M3 12h3m6-9v3m0 6h3m-3 6v3"/>
   {% endif %}
 </svg>
@@ -73,7 +71,6 @@
                 {{ preset('forest', '松绿') }}
                 {{ preset('clay', '陶土') }}
               </div>
-              <div class="privacy-note">{{ icon('shield') }}<p>内容仅发送至当前 QRG 服务器，<br>不会转发至第三方二维码服务。</p></div>
             </section>
 
             <section class="editor-panel" role="tabpanel" id="panel-style" aria-labelledby="tab-style" tabindex="0" hidden>
@@ -85,7 +82,6 @@
                 <div class="field"><label for="module-shape">码点形状</label><select id="module-shape"><option value="square">方形</option><option value="tile" selected>圆角瓷砖</option><option value="circle">圆形</option></select></div>
                 <div class="field"><label for="eye-shape">码眼形状</label><select id="eye-shape"><option value="square">方形</option><option value="rounded" selected>中圆角</option></select></div>
               </div></fieldset>
-              <div class="tip-note">{{ icon('spark') }}<p>深色码点搭配浅色背景更易识别。</p></div>
             </section>
 
             <section class="editor-panel" role="tabpanel" id="panel-logo" aria-labelledby="tab-logo" tabindex="0" hidden>
@@ -96,9 +92,8 @@
               </div>
               <div class="field-grid logo-options" id="logo-options">
                 <div class="field"><label for="logo-modules">Logo 大小 <output id="logo-modules-value" for="logo-modules">5 × 5 格</output></label><input id="logo-modules" type="range" min="1" max="44" step="1" value="5" aria-valuetext="5 × 5 格" disabled></div>
-                <div class="field"><label for="logo-padding-px">周围留白（像素）</label><input id="logo-padding-px" type="number" min="0" max="128" step="1" value="1" inputmode="numeric" aria-describedby="logo-padding-note" disabled></div>
+                <div class="field"><label for="logo-padding-px">周围留白（像素）</label><input id="logo-padding-px" type="number" min="0" max="128" step="1" value="1" inputmode="numeric" disabled></div>
               </div>
-              <div class="tip-note">{{ icon('spark') }}<p id="logo-padding-note">带 Logo 建议使用 H 级容错。留白按完整码点取整，小幅调整可能显示相同。</p></div>
             </section>
 
             <section class="editor-panel" role="tabpanel" id="panel-advanced" aria-labelledby="tab-advanced" tabindex="0" hidden>
@@ -109,7 +104,6 @@
                 <div class="field"><label for="version">二维码版本</label><select id="version"><option value="auto">自动选择</option></select></div>
               </div>
               <label class="check-row" for="crisp"><input id="crisp" type="checkbox" role="switch"><span>锐利像素边缘</span></label>
-              <div class="tip-note">{{ icon('spark') }}<p>更大的留白有助于扫码；较高的容错等级可以容纳遮挡，但会让二维码更密集。</p></div>
             </section>
           </form>
         </section>
@@ -118,13 +112,10 @@
           <div class="preview-toolbar"><span id="preview-title">画布预览</span><div class="history-actions"><button type="button" class="icon-button" id="undo" data-tooltip="撤销上次修改" aria-label="撤销上次修改" disabled>{{ icon('undo') }}</button><button type="button" class="icon-button" id="redo" data-tooltip="重做已撤销的修改" aria-label="重做已撤销的修改" disabled>{{ icon('redo') }}</button></div></div>
           <div class="preview-canvas">
             <div class="preview-card"><div class="preview-stage" id="preview-stage"><img id="preview-image" alt="生成的二维码预览" hidden><div id="preview-placeholder" class="preview-placeholder">{{ icon('qr') }}<span>等待生成二维码</span></div></div></div>
-            <div class="canvas-size"><span></span><output id="preview-size" for="size">1024 × 1024 px</output><span></span></div>
           </div>
           <div class="export-panel">
-            <div class="preview-meta"><span class="meta-dot" id="status-dot" aria-hidden="true"></span><p id="status" role="status" aria-live="polite">正在生成预览…</p></div>
-            <p class="qr-details" id="qr-details" aria-live="polite"></p>
+            <p id="status" class="visually-hidden" role="status" aria-live="polite">正在生成预览…</p>
             <div class="download-actions"><button type="button" class="primary-button" id="download-png" disabled>{{ icon('download') }}<span>导出 PNG</span></button><button type="button" class="secondary-button" id="download-svg" disabled>{{ icon('download') }}<span>导出 SVG</span></button></div>
-            <p class="preview-footnote">导出后请在使用环境中扫码确认。</p>
           </div>
         </aside>
       </div>
