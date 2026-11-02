@@ -94,6 +94,27 @@ class WebTests(unittest.TestCase):
             self.assertEqual(float(embedded.get('height')), modules / 2)
         self.assertEqual(widths, [5, 7])
 
+    def test_web_module_slot_clears_exact_two_by_two_grid(self):
+        base = self.render(content='x', format='svg', version=1, margin=4,
+                           module_shape='square', logo_modules=2, logo_padding_px=0)
+        fitted = self.render(content='x', format='svg', version=1, margin=4,
+                             module_shape='square', logo_modules=2, logo_padding_px=0,
+                             logo=logo_data((40, 20)))
+        self.assertEqual(base.status_code, 200)
+        self.assertEqual(fitted.status_code, 200, fitted.json)
+        ns = '{http://www.w3.org/2000/svg}'
+
+        def cells(response):
+            return {(int(float(rect.get('x'))) - 4, int(float(rect.get('y'))) - 4)
+                    for rect in ET.fromstring(response.data).findall(ns + 'rect')
+                    if rect.get('width') == '1' and rect.get('height') == '1'}
+
+        self.assertEqual(cells(fitted), {cell for cell in cells(base) if not
+                         (9 <= cell[0] < 11 and 9 <= cell[1] < 11)})
+        embedded = ET.fromstring(fitted.data).find(ns + 'image')
+        self.assertEqual(float(embedded.get('x')), 13)
+        self.assertEqual(float(embedded.get('width')), 2)
+
     def test_logo_module_limit_uses_resolved_qr_version(self):
         result = self.render(content='x', version=1, logo=logo_data(), logo_modules=6)
         self.assertEqual(result.status_code, 400)

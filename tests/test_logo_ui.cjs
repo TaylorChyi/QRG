@@ -39,6 +39,38 @@ async function previewCentre(page) {
   });
 }
 
+async function changedFootprint(page, settings) {
+  return page.locator('#preview-image').evaluate(async (image, settings) => {
+    const baseline = await fetch('/api/render', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...settings, logo: null, logo_crop: null }),
+    });
+    if (!baseline.ok) throw new Error('Cannot render QR baseline');
+    const bitmaps = await Promise.all([
+      createImageBitmap(await baseline.blob()), createImageBitmap(image),
+    ]);
+    const pixels = bitmaps.map(bitmap => {
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width; canvas.height = bitmap.height;
+      const context = canvas.getContext('2d');
+      context.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      return context.getImageData(0, 0, canvas.width, canvas.height).data;
+    });
+    let left = settings.size, top = settings.size, right = -1, bottom = -1;
+    for (let y = 0; y < settings.size; y += 1) {
+      for (let x = 0; x < settings.size; x += 1) {
+        const i = (y * settings.size + x) * 4;
+        if ([0, 1, 2, 3].some(channel => pixels[0][i + channel] !== pixels[1][i + channel])) {
+          left = Math.min(left, x); top = Math.min(top, y);
+          right = Math.max(right, x); bottom = Math.max(bottom, y);
+        }
+      }
+    }
+    return { left, top, right, bottom };
+  }, settings);
+}
+
 async function syntheticIcon(page) {
   const base64 = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
@@ -121,6 +153,18 @@ async function main() {
     assert.notEqual(croppedHash, originalHash);
     const centre = await previewCentre(page);
     assert.ok(centre[2] > 200 && centre[0] < 40 && centre[1] < 40, `cropped preview centre is not blue: ${centre}`);
+
+    await page.locator('#logo-padding-px').fill('0');
+    await setRange(page, '#logo-modules', 2);
+    await ready(page);
+    const twoCells = await latestPayload(requests);
+    assert.equal(await page.locator('#logo-modules-value').textContent(), '2 × 2 格');
+    const cell = Math.floor(twoCells.size / (37 + twoCells.margin * 2));
+    const offset = (twoCells.size - (37 + twoCells.margin * 2) * cell) / 2;
+    const edge = offset + (twoCells.margin + Math.floor((37 - 2) / 2)) * cell;
+    assert.deepEqual(await changedFootprint(page, twoCells), {
+      left: edge, top: edge, right: edge + cell * 2 - 1, bottom: edge + cell * 2 - 1,
+    }, '2×2 Logo at zero padding must change exactly two grid rows and columns');
 
     await setRange(page, '#logo-modules', 3);
     await ready(page);

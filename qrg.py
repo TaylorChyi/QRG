@@ -107,12 +107,23 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
         logo = logo.resize((max(1, round(logo.width * ratio)),
                             max(1, round(logo.height * ratio))), Image.Resampling.LANCZOS)
         lw, lh = logo.width/px, logo.height/px
-        logo_x, logo_y = (n-lw)/2, (n-lh)/2
+        if args.logo_modules is not None:
+            # QR bodies have odd side lengths. An even-sized module slot must sit
+            # half a cell off the geometric centre to keep its edges on the grid.
+            slot_left = (n - args.logo_modules) // 2
+            slot_top = slot_left
+            logo_x = slot_left + (args.logo_modules - lw) / 2
+            logo_y = slot_top + (args.logo_modules - lh) / 2
+            clearance = (slot_left, slot_top,
+                         slot_left + args.logo_modules, slot_top + args.logo_modules)
+        else:
+            logo_x, logo_y = (n-lw)/2, (n-lh)/2
+            clearance = (logo_x, logo_y, logo_x + lw, logo_y + lh)
         padding = 1.25 if args.logo_padding_px is None else args.logo_padding_px * supersample / px
-        clear_left = math.floor(logo_x-padding)
-        clear_top = math.floor(logo_y-padding)
-        clear_right = math.ceil(logo_x+lw+padding)
-        clear_bottom = math.ceil(logo_y+lh+padding)
+        clear_left = math.floor(clearance[0]-padding)
+        clear_top = math.floor(clearance[1]-padding)
+        clear_right = math.ceil(clearance[2]+padding)
+        clear_bottom = math.ceil(clearance[3]+padding)
         # Do not erase alignment patterns, which are structural QR features.
         positions = qrcode.util.pattern_position(qr.version)
         for cy in positions:

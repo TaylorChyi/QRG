@@ -1,4 +1,5 @@
 import subprocess
+import io
 import math
 import sys
 import tempfile
@@ -6,9 +7,18 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from PIL import Image
+from qrg import QRSettings, render_qr
 
 ROOT = Path(__file__).resolve().parents[1]
 URL = 'https://app.huawei.com/qr/Ayb-zA-S3XC'
+
+
+def module_rects(svg, margin):
+    root = ET.fromstring(svg)
+    ns = '{http://www.w3.org/2000/svg}'
+    return {(int(float(rect.get('x'))) - margin, int(float(rect.get('y'))) - margin)
+            for rect in root.findall(ns + 'rect')
+            if rect.get('width') == '1' and rect.get('height') == '1'}
 
 class QRTests(unittest.TestCase):
     def setUp(self):
@@ -80,6 +90,63 @@ class QRTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('--logo-modules' if requested != 10 else '最多为 9 个码点', result.stderr)
                 self.assertFalse(out.exists())
+
+    def test_module_slot_removes_exact_grid_cells_for_odd_and_even_sizes(self):
+        icon = Image.new('RGBA', (40, 20), (250, 0, 0, 128))
+        base = QRSettings(content='x', version=1, error_correction='H',
+                          margin=4, size=290, logo_padding_px=0)
+        reference = module_rects(render_qr(base, 'svg').data, base.margin)
+        self.assertTrue(reference)
+        for count in (1, 2, 3, 4, 5):
+            with self.subTest(count=count):
+                settings = QRSettings(**{**base.__dict__, 'logo': icon, 'logo_modules': count})
+                rendered = render_qr(settings, 'svg')
+                slot_left = (rendered.modules - count) // 2
+                expected = {cell for cell in reference if not
+                            (slot_left <= cell[0] < slot_left + count and
+                             slot_left <= cell[1] < slot_left + count)}
+                self.assertEqual(module_rects(rendered.data, base.margin), expected)
+                embedded = ET.fromstring(rendered.data).find('{http://www.w3.org/2000/svg}image')
+                self.assertEqual(float(embedded.get('width')), count)
+                self.assertAlmostEqual(float(embedded.get('height')), count / 2, delta=.1)
+                self.assertGreaterEqual(float(embedded.get('x')), base.margin + slot_left)
+                self.assertGreaterEqual(float(embedded.get('y')), base.margin + slot_left)
+
+    def test_module_slot_png_logo_pixels_stay_inside_reserved_square(self):
+        icon = Image.new('RGBA', (40, 20), (250, 0, 0, 128))
+        settings = QRSettings(content='x', version=1, error_correction='H',
+                              margin=4, size=290, crisp=True, logo=icon,
+                              logo_modules=2, logo_padding_px=0)
+        rendered = render_qr(settings, 'png')
+        slot_left = (rendered.modules - settings.logo_modules) // 2
+        lower = (settings.margin + slot_left) * 10
+        upper = lower + settings.logo_modules * 10
+        with Image.open(io.BytesIO(rendered.data)) as qr:
+            red = []
+            for y in range(qr.height):
+                for x in range(qr.width):
+                    r, g, b, _ = qr.getpixel((x, y))
+                    if r > 200 and g < 180 and b < 180:
+                        red.append((x, y))
+        self.assertTrue(red)
+        self.assertEqual((min(x for x, _ in red), max(x for x, _ in red)), (lower, upper - 1))
+        self.assertGreaterEqual(min(y for _, y in red), lower)
+        self.assertLess(max(y for _, y in red), upper)
+
+    def test_module_slot_padding_expands_by_whole_cells_and_guards_alignment(self):
+        icon = Image.new('RGBA', (40, 20), (250, 0, 0, 128))
+        base = QRSettings(content='x', version=1, error_correction='H',
+                          margin=4, size=290, logo=icon, logo_modules=2, logo_padding_px=0)
+        tight = module_rects(render_qr(base, 'svg').data, base.margin)
+        padded = module_rects(render_qr(QRSettings(**{**base.__dict__, 'logo_padding_px': 11}), 'svg').data, base.margin)
+        reference = module_rects(render_qr(QRSettings(**{**base.__dict__, 'logo': None}), 'svg').data, base.margin)
+        self.assertEqual(padded, {cell for cell in reference if not (7 <= cell[0] < 13 and 7 <= cell[1] < 13)})
+        self.assertLess(len(padded), len(tight))
+        out = self.folder / 'alignment.svg'
+        result = self.run_qrg('x', '-o', out, '--version', 7, '--logo', self.logo,
+                              '--logo-modules', 2, '--logo-padding-px', 0)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('定位结构重叠', result.stderr)
 
     def test_rejects_insufficient_version(self):
         out = self.folder/'out.png'
