@@ -42,6 +42,10 @@ async function main() {
     assert.equal(await page.locator('#preview-image').evaluate(image => image.naturalWidth), imageSize);
     assert.equal(await page.locator('#undo').isDisabled(), true, 'zoom does not add QR setting history');
     assert.equal(renderRequests, initialRequests, 'zoom does not request another QR image');
+    await page.locator('#preview-viewport').evaluate(viewport => viewport.scrollTo(0, 0));
+    await page.locator('#preview-viewport').focus();
+    await page.keyboard.press('ArrowDown');
+    await page.waitForFunction(() => document.querySelector('#preview-viewport').scrollTop > 0);
 
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#download-png').click();
@@ -52,7 +56,7 @@ async function main() {
     assert.equal(png.readUInt32BE(16), imageSize, 'zoom preserves PNG export width');
     assert.equal(png.readUInt32BE(20), imageSize, 'zoom preserves PNG export height');
 
-    const sizes = [[1440, 900], [1280, 720], [1024, 768], [800, 600], [768, 1024],
+    const sizes = [[1920, 1200], [1440, 900], [1280, 720], [1024, 768], [800, 600], [768, 1024],
       [390, 844], [375, 667], [320, 568], [844, 390], [667, 375]];
     for (const theme of ['light', 'dark']) {
       await page.emulateMedia({ colorScheme: theme });
@@ -63,6 +67,26 @@ async function main() {
         }
         await page.locator('#zoom-reset').click();
         const baseWidth = await cardWidth();
+        const fittedLayout = await page.evaluate(() => {
+          const bounds = selector => document.querySelector(selector).getBoundingClientRect();
+          const viewport = bounds('#preview-viewport');
+          const canvas = bounds('.preview-canvas');
+          const pane = bounds('.preview-pane');
+          const toolbar = bounds('.preview-toolbar');
+          const exportPanel = bounds('.export-panel');
+          const card = bounds('.preview-card');
+          const zoom = bounds('.preview-zoom');
+          const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          return {
+            fillsCanvas: ['left', 'right', 'top', 'bottom'].every(edge => Math.abs(viewport[edge] - canvas[edge]) < 1),
+            fillsPane: Math.abs(canvas.top - pane.top) < 1 && Math.abs(canvas.bottom - exportPanel.top) < 1,
+            toolbarOverlays: toolbar.top >= canvas.top && toolbar.bottom <= canvas.bottom,
+            fitsAvailableSpace: card.left >= viewport.left - 1 && card.right <= viewport.right + 1 && card.top >= viewport.top - 1 && card.bottom <= viewport.bottom + 1,
+            unobscured: !overlaps(card, zoom) && [...document.querySelectorAll('.preview-toolbar button')].every(button => !overlaps(card, button.getBoundingClientRect())),
+            uncapped: innerWidth !== 1920 || card.width > 440,
+          };
+        });
+        assert.ok(Object.values(fittedLayout).every(Boolean), `${theme} ${width}×${height}: ${JSON.stringify(fittedLayout)}`);
         for (let step = 0; step < 4; step += 1) await page.locator('#zoom-in').click();
         assert.ok(Math.abs(await cardWidth() / baseWidth - 2) < .01);
         const layout = await page.evaluate(() => {
@@ -71,6 +95,7 @@ async function main() {
           const zoom = document.querySelector('.preview-zoom').getBoundingClientRect();
           const canvas = document.querySelector('.preview-canvas').getBoundingClientRect();
           const exportPanel = document.querySelector('.export-panel').getBoundingClientRect();
+          const toolbarButtons = [...document.querySelectorAll('.preview-toolbar button')].map(button => button.getBoundingClientRect());
           viewport.scrollTo(0, 0);
           const start = card.getBoundingClientRect();
           const bounds = viewport.getBoundingClientRect();
@@ -80,6 +105,8 @@ async function main() {
             pageFits: document.documentElement.scrollWidth === innerWidth && document.documentElement.scrollHeight === innerHeight,
             controlsFit: zoom.left >= 0 && zoom.right <= innerWidth && zoom.top >= canvas.top && zoom.bottom <= exportPanel.top,
             centred: Math.abs((zoom.left + zoom.right) - (canvas.left + canvas.right)) < 2,
+            toolbarFits: toolbarButtons.every(button => button.left >= canvas.left && button.right <= canvas.right && button.top >= canvas.top && button.bottom <= canvas.bottom),
+            controlsSeparate: toolbarButtons.every(button => button.right <= zoom.left || button.left >= zoom.right || button.bottom <= zoom.top || button.top >= zoom.bottom),
             imageReachable: start.left >= bounds.left - 1 && start.top >= bounds.top - 1 && end.right <= bounds.right + 1 && end.bottom <= bounds.bottom + 1,
             exportFits: exportPanel.bottom <= innerHeight + 1,
           };
@@ -96,7 +123,7 @@ async function main() {
     assert.equal(await page.locator('#zoom-out').isDisabled(), true);
     assert.equal(await page.locator('#zoom-reset').isDisabled(), true);
     assert.deepEqual(errors, []);
-    process.stdout.write('preview zoom: controls, limits, export and 20 themed layouts ok\n');
+    process.stdout.write('preview zoom: full canvas, controls, limits, export and 22 themed layouts ok\n');
   } finally {
     await browser.close();
   }
