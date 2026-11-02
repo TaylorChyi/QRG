@@ -95,7 +95,7 @@
                 <div class="logo-actions"><input id="logo-file" type="file" accept="image/png,image/jpeg,image/webp" class="visually-hidden"><label class="small-button upload-button" for="logo-file">{{ icon('image') }} 选择图片</label><button type="button" class="text-button" id="edit-logo-crop" hidden>调整范围</button><button type="button" class="text-button" id="remove-logo" hidden>移除图片</button></div>
               </div>
               <div class="field-grid logo-options" id="logo-options">
-                <div class="field"><label for="logo-scale">Logo 大小 <output id="logo-scale-value" for="logo-scale">19%</output></label><input id="logo-scale" type="range" min="5" max="25" step="1" value="19" disabled></div>
+                <div class="field"><label for="logo-modules">Logo 大小 <output id="logo-modules-value" for="logo-modules">5 × 5 格</output></label><input id="logo-modules" type="range" min="1" max="44" step="1" value="5" aria-valuetext="5 × 5 格" disabled></div>
                 <div class="field"><label for="logo-padding-px">周围留白（像素）</label><input id="logo-padding-px" type="number" min="0" max="128" step="1" value="1" inputmode="numeric" aria-describedby="logo-padding-note" disabled></div>
               </div>
               <div class="tip-note">{{ icon('spark') }}<p id="logo-padding-note">带 Logo 建议使用 H 级容错。留白按完整码点取整，小幅调整可能显示相同。</p></div>

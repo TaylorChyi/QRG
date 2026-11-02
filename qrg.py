@@ -50,6 +50,13 @@ class QRSettings:
     logo: Image.Image | None = None
     logo_scale: float = .20
     logo_padding_px: int | None = None
+    logo_modules: int | None = None
+
+
+class LogoSizeError(ValueError):
+    def __init__(self, max_modules):
+        self.max_modules = max_modules
+        super().__init__(f'当前二维码的 Logo 最多为 {max_modules} 个码点；请缩小 Logo 或增加二维码版本')
 
 
 @dataclass(frozen=True)
@@ -70,6 +77,8 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     except DataOverflowError:
         raise ValueError('内容无法放入指定版本和容错等级；请选择更大的版本或自动版本') from None
     matrix = qr.get_matrix(); n = len(matrix); total = n + 2 * args.margin
+    if args.logo_modules is not None and args.logo_modules > n // 4:
+        raise LogoSizeError(n // 4)
     if args.size < total: raise ValueError(f'输出尺寸至少需要 {total} 像素，以容纳每个码点')
     fg, fa = svg_color(args.color); bg, ba = svg_color(args.background)
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{args.size}" height="{args.size}" viewBox="0 0 {total} {total}">',
@@ -90,7 +99,7 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     logo = None
     if args.logo is not None:
         logo = args.logo.convert('RGBA')
-        max_side = n * args.logo_scale
+        max_side = args.logo_modules if args.logo_modules is not None else n * args.logo_scale
         # Scale both small and large uploads to the selected share of the QR body.
         # thumbnail() only shrinks, so common small icons otherwise stay the same size.
         target_side = max(1, round(max_side * px))
@@ -168,12 +177,14 @@ def main():
     p.add_argument('--logo', type=Path, help='中心 Logo 图片路径（PNG、JPEG 等 Pillow 支持的格式）')
     p.add_argument('--logo-padding-px', type=positive, help='Logo 最小留白，单位为输出像素；实际边界按完整码点向外取整')
     p.add_argument('--logo-scale', type=float, default=0.20, help='Logo 最大宽度占二维码本体边长比例（默认 0.20，最大 0.25）')
+    p.add_argument('--logo-modules', type=int, help='Logo 最大边长占用的码点数（1–44，且不超过当前二维码本体边长的四分之一）')
     args = p.parse_args()
     out = Path(args.output).expanduser()
     if out.suffix.lower() not in ('.png', '.svg'): p.error('输出文件扩展名必须为 .png 或 .svg')
     if args.verify and out.suffix.lower() != '.png': p.error('--verify 仅支持 PNG')
     if args.size < 64 or args.size > 16384: p.error('--size 必须在 64–16384 之间')
     if not 0 < args.logo_scale <= .25: p.error('--logo-scale 必须大于 0 且不超过 0.25')
+    if args.logo_modules is not None and not 1 <= args.logo_modules <= 44: p.error('--logo-modules 必须为 1–44 之间的整数')
     if args.color[3] == 0: p.error('码颜色不能完全透明')
     logo = None
     if args.logo:

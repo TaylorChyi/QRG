@@ -6,7 +6,7 @@
     content: $('content'), color: $('color'), background: $('background'), transparent: $('transparent'),
     module_shape: $('module-shape'), eye_shape: $('eye-shape'), margin: $('margin'),
     error_correction: $('error-correction'), version: $('version'), size: $('size'), crisp: $('crisp'),
-    logo_scale: $('logo-scale'), logo_padding_px: $('logo-padding-px'),
+    logo_modules: $('logo-modules'), logo_padding_px: $('logo-padding-px'),
   };
   const preview = $('preview-image');
   const placeholder = $('preview-placeholder');
@@ -27,11 +27,11 @@
     forest: { color: '#146c53', background: '#ffffff', transparent: false, module_shape: 'circle', eye_shape: 'rounded' },
     clay: { color: '#9a482f', background: '#fff8f0', transparent: false, module_shape: 'tile', eye_shape: 'rounded' },
   };
-  const numberBounds = { margin: [0, 32], size: [64, 4096], logo_padding_px: [0, 128], logo_scale: [5, 25] };
+  const numberBounds = { margin: [0, 32], size: [64, 4096], logo_padding_px: [0, 128], logo_modules: [1, 44] };
   const initial = {
     content: 'https://example.com', color: '#000000', background: '#ffffff', transparent: false,
     module_shape: 'tile', eye_shape: 'rounded', margin: 4, error_correction: 'H', version: null,
-    size: 1024, crisp: false, logo: null, logo_name: '', logo_crop: null, logo_scale: 0.19, logo_padding_px: 1,
+    size: 1024, crisp: false, logo: null, logo_name: '', logo_crop: null, logo_modules: 5, logo_padding_px: 1,
   };
 
   let settings = { ...initial };
@@ -84,14 +84,18 @@
     controls.version.value = settings.version === null ? 'auto' : String(settings.version);
     if (!invalidInputs.has('size')) controls.size.value = String(settings.size);
     controls.crisp.checked = settings.crisp;
-    if (!invalidInputs.has('logo_scale')) controls.logo_scale.value = String(Math.round(settings.logo_scale * 100));
+    numberBounds.logo_modules[1] = Math.max(numberBounds.logo_modules[1], settings.logo_modules);
+    controls.logo_modules.max = String(numberBounds.logo_modules[1]);
+    if (!invalidInputs.has('logo_modules')) controls.logo_modules.value = String(settings.logo_modules);
     if (!invalidInputs.has('logo_padding_px')) controls.logo_padding_px.value = String(settings.logo_padding_px);
     for (const key of Object.keys(numberBounds)) controls[key].setAttribute('aria-invalid', invalidInputs.has(key) ? 'true' : 'false');
-    controls.logo_scale.disabled = !settings.logo;
+    controls.logo_modules.disabled = !settings.logo;
     controls.logo_padding_px.disabled = !settings.logo;
     $('color-value').textContent = settings.color.toUpperCase();
     $('background-value').textContent = settings.background.toUpperCase();
-    $('logo-scale-value').textContent = `${Math.round(settings.logo_scale * 100)}%`;
+    const logoSize = `${settings.logo_modules} × ${settings.logo_modules} 格`;
+    $('logo-modules-value').textContent = logoSize;
+    controls.logo_modules.setAttribute('aria-valuetext', logoSize);
     $('logo-name').textContent = settings.logo_name || '未选择图片';
     $('content-count').textContent = `${settings.content.length} / 4096`;
     $('preview-size').textContent = `${settings.size} × ${settings.size} px`;
@@ -194,7 +198,7 @@
       module_shape: settings.module_shape, eye_shape: settings.eye_shape,
       margin: settings.margin, error_correction: settings.error_correction,
       version: settings.version, size: settings.size, crisp: settings.crisp,
-      logo: settings.logo, logo_scale: settings.logo_scale,
+      logo: settings.logo, logo_modules: settings.logo_modules,
       logo_crop: settings.logo_crop, logo_padding_px: settings.logo_padding_px, format,
     };
   }
@@ -206,9 +210,12 @@
     });
     if (!response.ok) {
       const data = await response.json().catch(() => null);
-      throw new Error(data?.error || `生成失败（HTTP ${response.status}）`);
+      const error = new Error(data?.error || `生成失败（HTTP ${response.status}）`);
+      error.maxLogoModules = data?.max_logo_modules;
+      throw error;
     }
-    return { blob: await response.blob(), version: response.headers.get('X-QRG-Version'), modules: response.headers.get('X-QRG-Modules') };
+    return { blob: await response.blob(), version: response.headers.get('X-QRG-Version'), modules: response.headers.get('X-QRG-Modules'),
+      maxLogoModules: Number(response.headers.get('X-QRG-Logo-Max-Modules')) };
   }
 
   async function render(targetRevision) {
@@ -217,6 +224,10 @@
     try {
       const result = await requestImage('png', controller.signal);
       if (targetRevision !== revision) return;
+      if (Number.isInteger(result.maxLogoModules) && result.maxLogoModules >= 1 && result.maxLogoModules <= 44) {
+        numberBounds.logo_modules[1] = result.maxLogoModules;
+        syncControls();
+      }
       const nextUrl = URL.createObjectURL(result.blob);
       const previousUrl = imageUrl;
       imageUrl = nextUrl;
@@ -232,6 +243,14 @@
       if (previousUrl) URL.revokeObjectURL(previousUrl);
     } catch (error) {
       if (targetRevision !== revision || error.name === 'AbortError') return;
+      if (Number.isInteger(error.maxLogoModules) && error.maxLogoModules >= 1 && error.maxLogoModules <= 44 && settings.logo_modules > error.maxLogoModules) {
+        numberBounds.logo_modules[1] = error.maxLogoModules;
+        settings = { ...settings, logo_modules: error.maxLogoModules };
+        invalidInputs.delete('logo_modules');
+        syncControls();
+        invalidate();
+        return;
+      }
       stage.classList.remove('is-loading');
       preview.hidden = true;
       placeholder.hidden = false;
@@ -287,9 +306,8 @@
           return;
         }
         const wasInvalid = invalidInputs.delete(key);
-        const nextValue = key === 'logo_scale' ? value / 100 : value;
-        const changed = settings[key] !== nextValue;
-        update(key, nextValue, key === 'logo_scale' || key === 'size');
+        const changed = settings[key] !== value;
+        update(key, value, key === 'logo_modules' || key === 'size');
         if (wasInvalid && !changed) invalidate();
         return;
       }
@@ -301,7 +319,7 @@
       if (invalidInputs.has(key)) {
         invalidInputs.delete(key);
         control.setAttribute('aria-invalid', 'false');
-        control.value = key === 'logo_scale' ? String(Math.round(settings.logo_scale * 100)) : String(settings[key]);
+        control.value = String(settings[key]);
         window.QRGControls?.sync();
         invalidate();
       }
@@ -383,7 +401,7 @@
     if (past.length > 40) past.shift();
     future = [];
     lastEdit = { key: null, time: 0 };
-    invalidInputs.delete('logo_scale');
+    invalidInputs.delete('logo_modules');
     invalidInputs.delete('logo_padding_px');
     settings = { ...settings, ...values };
     syncControls();
@@ -404,7 +422,7 @@
     if (past.length > 40) past.shift();
     future = [];
     lastEdit = { key: null, time: 0 };
-    invalidInputs.delete('logo_scale');
+    invalidInputs.delete('logo_modules');
     invalidInputs.delete('logo_padding_px');
     settings = { ...settings, logo: null, logo_name: '', logo_crop: null };
     syncControls();

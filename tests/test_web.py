@@ -79,6 +79,32 @@ class WebTests(unittest.TestCase):
         self.assertLess(len(renders[(.20, 32)].findall(ns + 'rect')),
                         len(renders[(.20, 0)].findall(ns + 'rect')))
 
+    def test_logo_module_size_is_exact_and_keeps_aspect_ratio(self):
+        logo = logo_data((16, 8))
+        widths = []
+        for modules in (5, 7):
+            result = self.render(format='svg', version=5, logo=logo,
+                                 logo_modules=modules, logo_scale=.05, logo_padding_px=0)
+            self.assertEqual(result.status_code, 200, result.json)
+            self.assertEqual(result.headers['X-QRG-Logo-Max-Modules'], '9')
+            self.assertEqual(result.headers['X-QRG-Logo-Modules'], str(modules))
+            embedded = ET.fromstring(result.data).find('{http://www.w3.org/2000/svg}image')
+            widths.append(float(embedded.get('width')))
+            self.assertEqual(float(embedded.get('width')), modules)
+            self.assertEqual(float(embedded.get('height')), modules / 2)
+        self.assertEqual(widths, [5, 7])
+
+    def test_logo_module_limit_uses_resolved_qr_version(self):
+        result = self.render(content='x', version=1, logo=logo_data(), logo_modules=6)
+        self.assertEqual(result.status_code, 400)
+        self.assertEqual(result.json['max_logo_modules'], 5)
+        self.assertIn('5 个码点', result.json['error'])
+        accepted = self.render(content='x', version=1, logo_modules=5)
+        self.assertEqual(accepted.status_code, 200)
+        self.assertEqual(accepted.headers['X-QRG-Logo-Max-Modules'], '5')
+        self.assertEqual(accepted.headers['X-QRG-Logo-Modules'], '5')
+        self.assertEqual(self.render(content='x', version=1).headers['X-QRG-Logo-Max-Modules'], '5')
+
     def test_logo_crop_selects_source_pixels_before_embedding(self):
         source = Image.new('RGB', (40, 20), '#ff0000')
         source.paste('#0000ff', (20, 0, 40, 20))
@@ -152,6 +178,8 @@ class WebTests(unittest.TestCase):
             {'logo_scale': 0}, {'logo_scale': .26}, {'logo_scale': 10 ** 400},
             {'logo_scale': float('nan')}, {'logo_scale': float('inf')}, {'logo_scale': True},
             {'logo_padding_px': 129}, {'logo_padding_px': '1'},
+            {'logo_modules': 0}, {'logo_modules': 45}, {'logo_modules': -1},
+            {'logo_modules': 5.0}, {'logo_modules': '5'}, {'logo_modules': True},
         ]
         for params in cases:
             with self.subTest(field=next(iter(params))):

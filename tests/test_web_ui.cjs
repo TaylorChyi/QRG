@@ -137,17 +137,17 @@ async function main() {
     await page.locator('#logo-file').setInputFiles('assets/icon.png');
     await page.locator('#apply-logo-crop').click();
     await page.locator('#remove-logo').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('#logo-scale').isDisabled(), false);
+    assert.equal(await page.locator('#logo-modules').isDisabled(), false);
     await page.setViewportSize({ width: 320, height: 568 });
     const logoGeometry = await geometry(page);
     assert.ok(logoGeometry.formScroll <= 1, `uploaded logo must fit: ${JSON.stringify(logoGeometry)}`);
     assert.deepEqual(logoGeometry.clippedControls, [], 'uploaded logo controls must remain visible');
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.locator('#logo-scale').focus();
-    for (let step = 0; step < 4; step += 1) await page.keyboard.press('ArrowLeft');
-    assert.equal(await page.locator('#logo-scale-value').textContent(), '15%');
+    await page.locator('#logo-modules').focus();
+    for (let step = 0; step < 2; step += 1) await page.keyboard.press('ArrowLeft');
+    assert.equal(await page.locator('#logo-modules-value').textContent(), '3 × 3 格');
     await page.locator('#remove-logo').click();
-    assert.equal(await page.locator('#logo-scale').isDisabled(), true);
+    assert.equal(await page.locator('#logo-modules').isDisabled(), true);
 
     await page.locator('#preview-image').waitFor({ state: 'visible', timeout: 20000 });
     await page.locator('#download-png').waitFor({ state: 'visible' });

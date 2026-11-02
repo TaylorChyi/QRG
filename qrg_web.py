@@ -12,7 +12,7 @@ from flask import Flask, Response, jsonify, render_template, request, send_from_
 from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import HTTPException
 
-from qrg import QRSettings, color, render_qr
+from qrg import LogoSizeError, QRSettings, color, render_qr
 
 ROOT = Path(__file__).resolve().parent
 MAX_LOGO_BYTES = 2 * 1024 * 1024
@@ -119,6 +119,7 @@ def settings_from_json(data):
         version=integer(data, 'version', None, 1, 40, nullable=True),
         size=integer(data, 'size', 1024, 64, 4096),
         crisp=crisp, logo=logo, logo_scale=logo_scale,
+        logo_modules=integer(data, 'logo_modules', None, 1, 44, nullable=True),
         logo_padding_px=integer(data, 'logo_padding_px', None, 0, 128, nullable=True),
     )
 
@@ -170,9 +171,15 @@ def render():
         output_format = choice(data, 'format', 'png', ('png', 'svg'))
         settings = settings_from_json(data)
         result = render_qr(settings, output_format)
+    except LogoSizeError as exc:
+        return jsonify(error=str(exc), max_logo_modules=exc.max_modules), 400
     except ValueError as exc:
         return jsonify(error=str(exc)), 400
-    return Response(result.data, mimetype='image/png' if output_format == 'png' else 'image/svg+xml', headers={
+    headers = {
         'Content-Disposition': f'attachment; filename="qrg.{output_format}"',
         'X-QRG-Version': str(result.version), 'X-QRG-Modules': str(result.modules),
-    })
+        'X-QRG-Logo-Max-Modules': str(result.modules // 4),
+    }
+    if settings.logo_modules is not None:
+        headers['X-QRG-Logo-Modules'] = str(settings.logo_modules)
+    return Response(result.data, mimetype='image/png' if output_format == 'png' else 'image/svg+xml', headers=headers)

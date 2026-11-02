@@ -60,6 +60,27 @@ class QRTests(unittest.TestCase):
         self.assertIn('定位结构重叠', result.stderr)
         self.assertFalse(out.exists())
 
+    def test_cli_logo_modules_are_exact_and_override_scale(self):
+        out = self.folder / 'modules.svg'
+        result = self.run_qrg(URL, '-o', out, '--size', 400, '--version', 5,
+                              '--error-correction', 'H', '--logo', self.logo,
+                              '--logo-modules', 5, '--logo-scale', '.05', '--logo-padding-px', 0)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        embedded = ET.parse(out).getroot().find('{http://www.w3.org/2000/svg}image')
+        self.assertEqual(float(embedded.get('width')), 5)
+        self.assertEqual(float(embedded.get('height')), 5)
+
+    def test_cli_logo_modules_rejects_invalid_and_version_limit(self):
+        for requested in (0, 45, -1, 'abc', 10):
+            with self.subTest(requested=requested):
+                out = self.folder / f'invalid-{requested}.svg'
+                result = self.run_qrg(URL, '-o', out, '--version', 5,
+                                      '--error-correction', 'H', '--logo', self.logo,
+                                      '--logo-modules', requested)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('--logo-modules' if requested != 10 else '最多为 9 个码点', result.stderr)
+                self.assertFalse(out.exists())
+
     def test_rejects_insufficient_version(self):
         out = self.folder/'out.png'
         result = self.run_qrg(URL, '-o', out, '--version', 1, '--error-correction', 'H')

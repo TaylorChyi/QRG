@@ -122,12 +122,15 @@ async function main() {
     const centre = await previewCentre(page);
     assert.ok(centre[2] > 200 && centre[0] < 40 && centre[1] < 40, `cropped preview centre is not blue: ${centre}`);
 
-    await setRange(page, '#logo-scale', 10);
+    await setRange(page, '#logo-modules', 3);
     await ready(page);
     const smallHash = await previewHash(page);
-    await setRange(page, '#logo-scale', 20);
+    await setRange(page, '#logo-modules', 7);
     await ready(page);
-    assert.notEqual(await previewHash(page), smallHash, 'small uploaded icon ignores Logo scale');
+    assert.notEqual(await previewHash(page), smallHash, 'small uploaded icon ignores Logo module count');
+    assert.equal((await latestPayload(requests)).logo_modules, 7);
+    assert.equal('logo_scale' in (await latestPayload(requests)), false);
+    assert.equal(await page.locator('#logo-modules-value').textContent(), '7 × 7 格');
     await page.locator('#logo-padding-px').fill('0');
     await ready(page);
     const tightHash = await previewHash(page);
@@ -243,6 +246,22 @@ async function main() {
     `square-image Apply button is below fold: ${JSON.stringify(squareGeometry)}`);
     assert.ok(squareGeometry.dialogOverflowX <= 1, `square-image dialog has horizontal overflow: ${JSON.stringify(squareGeometry)}`);
     await page.locator('#cancel-logo-crop').click();
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.locator('#tab-content').click();
+    await page.locator('#content').fill('A');
+    await page.locator('#tab-advanced').click();
+    await page.locator('#version').selectOption('1');
+    await ready(page);
+    assert.equal((await latestPayload(requests)).logo_modules, 5, 'smaller QR must cap Logo to five cells');
+    assert.equal(await page.locator('#logo-modules').getAttribute('max'), '5');
+    assert.equal(await page.locator('#logo-modules-value').textContent(), '5 × 5 格');
+    await page.locator('#undo').click();
+    await ready(page);
+    assert.equal((await latestPayload(requests)).logo_modules, 7, 'undo must restore previous module count');
+    assert.equal(await page.locator('#logo-modules').getAttribute('max'), '9');
+    await page.locator('#redo').click();
+    await ready(page);
+    assert.equal((await latestPayload(requests)).logo_modules, 5);
     assert.deepEqual(errors, [], `JavaScript errors: ${errors.join('; ')}`);
     process.stdout.write('logo crop and preview regressions ok\n');
   } finally {
