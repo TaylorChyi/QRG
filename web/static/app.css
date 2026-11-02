@@ -54,8 +54,6 @@ button, label, input, select, textarea { touch-action: manipulation; }
 .brand-icon { display: block; width: 34px; height: 34px; object-fit: contain; }
 .brand-name { font-size: 25px; font-weight: 750; letter-spacing: -1.2px; line-height: 1; }
 .brand-period { color: var(--accent); }
-.brand-divider { height: 21px; width: 1px; margin: 0 8px; background: var(--line); }
-.brand-caption { color: var(--muted); font-size: 12px; letter-spacing: .08em; }
 .theme-control { display: flex; align-items: center; gap: 3px; color: var(--muted); padding: 0 8px 0 12px; border: 1px solid var(--line); border-radius: 8px; }
 .theme-control .icon { width: 16px; height: 16px; }
 .theme-control select { width: auto; min-height: 34px; padding: 6px 7px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 12px; }
@@ -155,7 +153,7 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 }
 .advanced-grid { gap: 18px 16px; }
 .preview-pane { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; border-left: 1px solid var(--line); background: var(--canvas); }
-.preview-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 26px; min-height: 56px; color: var(--muted); font-size: 11px; }
+.preview-toolbar { display: flex; align-items: center; justify-content: flex-end; padding: 12px 26px; min-height: 56px; color: var(--muted); font-size: 11px; }
 .history-actions { display: flex; align-items: center; gap: 5px; }
 .icon-button { position: relative; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); transition: border-color .15s, color .15s; }
 .icon-button[data-tooltip]::after { content: attr(data-tooltip); position: absolute; top: calc(100% + 7px); right: 0; z-index: 5; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); box-shadow: var(--frame-shadow); color: var(--text); font-size: 10px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; }
@@ -191,8 +189,6 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
   .topbar { height: 56px; padding: 0 18px; }
   .brand { gap: 8px; }
   .brand-name { font-size: 24px; }
-  .brand-divider { margin: 0 4px; }
-  .brand-caption { font-size: 11px; letter-spacing: 0; }
   .main-content { padding: 16px; }
   .workspace-views { display: grid; flex: none; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--subtle); }
   .workspace-views button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 5px 8px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; font-size: 12px; }
@@ -216,7 +212,6 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 @media (max-width: 380px) {
   .main-content { padding: 12px; }
   .topbar { padding: 0 14px; }
-  .brand-caption, .brand-divider { display: none; }
   .editor-panel { padding-left: 16px; padding-right: 16px; }
   .editor-tabs { padding-left: 16px; padding-right: 16px; }
   .field-grid { gap: 14px 10px; }

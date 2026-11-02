@@ -26,7 +26,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <meta name="description" content="在浏览器中制作和导出可定制的二维码。">
-  <title>QRG · 二维码工作室</title>
+  <title>QRG</title>
   <link rel="icon" type="image/png" href="{{ url_for('icon') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='controls.css') }}">
@@ -37,10 +37,9 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand" aria-label="QRG 二维码工作室">
+      <div class="brand" aria-label="QRG">
         <img class="brand-icon" src="{{ url_for('icon') }}" alt="" width="34" height="34">
         <span class="brand-name">QRG<span class="brand-period">.</span></span>
-        <span class="brand-divider" aria-hidden="true"></span><span class="brand-caption">二维码工作室</span>
       </div>
       <div class="theme-control">{{ icon('screen') }}<span class="visually-hidden">界面外观</span><select id="theme" aria-label="界面外观"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></div>
     </header>
@@ -108,8 +107,8 @@
           </form>
         </section>
 
-        <aside class="preview-pane" id="preview-pane" aria-labelledby="preview-title">
-          <div class="preview-toolbar"><span id="preview-title">画布预览</span><div class="history-actions"><button type="button" class="icon-button" id="undo" data-tooltip="撤销上次修改" aria-label="撤销上次修改" disabled>{{ icon('undo') }}</button><button type="button" class="icon-button" id="redo" data-tooltip="重做已撤销的修改" aria-label="重做已撤销的修改" disabled>{{ icon('redo') }}</button></div></div>
+        <aside class="preview-pane" id="preview-pane" aria-label="预览与导出">
+          <div class="preview-toolbar"><div class="history-actions"><button type="button" class="icon-button" id="undo" data-tooltip="撤销上次修改" aria-label="撤销上次修改" disabled>{{ icon('undo') }}</button><button type="button" class="icon-button" id="redo" data-tooltip="重做已撤销的修改" aria-label="重做已撤销的修改" disabled>{{ icon('redo') }}</button></div></div>
           <div class="preview-canvas">
             <div class="preview-card"><div class="preview-stage" id="preview-stage"><img id="preview-image" alt="生成的二维码预览" hidden><div id="preview-placeholder" class="preview-placeholder">{{ icon('qr') }}<span>等待生成二维码</span></div></div></div>
           </div>
