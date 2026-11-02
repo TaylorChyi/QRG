@@ -131,17 +131,21 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     fg, fa = svg_color(args.color); bg, ba = svg_color(args.background)
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{args.size}" height="{args.size}" viewBox="0 0 {total} {total}">',
              f'<rect width="{total}" height="{total}" fill="{bg}" fill-opacity="{ba}"/>']
-    # Keep the QR grid on whole pixels; antialias only the rounded edges.
+    # Use equal whole-pixel cells when a quiet zone can absorb the remainder.
+    # A borderless PNG must fill its canvas instead of adding an implicit margin.
     supersample = 1 if args.crisp else max(1, min(4, 4096 // args.size))
     image = Image.new('RGBA', (args.size * supersample, args.size * supersample), args.background) if output_format == 'png' else None
     draw = ImageDraw.Draw(image) if image is not None else None
-    px = (args.size // total) * supersample
-    offset = (args.size * supersample - total * px) / 2
+    borderless_png = args.margin == 0 and image is not None
+    px = (args.size / total if borderless_png else args.size // total) * supersample
+    offset = 0 if borderless_png else (args.size * supersample - total * px) / 2
     def rect(x, y, w, h, radius, fill):
         x += args.margin; y += args.margin
         c, a = svg_color(fill)
         parts.append(f'<rect x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}" rx="{radius:g}" fill="{c}" fill-opacity="{a}"/>')
-        box = (round(offset+x*px), round(offset+y*px), round(offset+(x+w)*px)-1, round(offset+(y+h)*px)-1)
+        left, top = round(offset+x*px), round(offset+y*px)
+        box = (left, top, max(left, round(offset+(x+w)*px)-1),
+               max(top, round(offset+(y+h)*px)-1))
         if draw is not None:
             draw.rounded_rectangle(box, radius=radius*px, fill=fill)
     logo = None
@@ -150,7 +154,12 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
         max_side = args.logo_modules if args.logo_modules is not None else n * args.logo_scale
         # Scale both small and large uploads to the selected share of the QR body.
         # thumbnail() only shrinks, so common small icons otherwise stay the same size.
-        target_side = max(1, round(max_side * px))
+        slot_left = (n - args.logo_modules) // 2 if args.logo_modules is not None else None
+        if borderless_png and slot_left is not None:
+            slot_start = round(slot_left * px)
+            target_side = max(1, round((slot_left + args.logo_modules) * px) - slot_start)
+        else:
+            target_side = max(1, round(max_side * px))
         ratio = target_side / max(logo.size)
         logo = logo.resize((max(1, round(logo.width * ratio)),
                             max(1, round(logo.height * ratio))), Image.Resampling.LANCZOS)
@@ -158,7 +167,6 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
         if args.logo_modules is not None:
             # QR bodies have odd side lengths. An even-sized module slot must sit
             # half a cell off the geometric centre to keep its edges on the grid.
-            slot_left = (n - args.logo_modules) // 2
             slot_top = slot_left
             logo_x = slot_left + (args.logo_modules - lw) / 2
             logo_y = slot_top + (args.logo_modules - lh) / 2
@@ -193,7 +201,12 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     if logo is not None:
         x, y = logo_x, logo_y
         if image is not None:
-            image.alpha_composite(logo, (round(offset+(x+args.margin)*px), round(offset+(y+args.margin)*px)))
+            if borderless_png and args.logo_modules is not None:
+                position = (slot_start + (target_side - logo.width) // 2,
+                            slot_start + (target_side - logo.height) // 2)
+            else:
+                position = (round(offset+(x+args.margin)*px), round(offset+(y+args.margin)*px))
+            image.alpha_composite(logo, position)
         data = io.BytesIO(); logo.save(data, format='PNG')
         encoded = base64.b64encode(data.getvalue()).decode('ascii')
         parts.append(f'<image x="{x+args.margin:g}" y="{y+args.margin:g}" width="{lw:g}" height="{lh:g}" href="data:image/png;base64,{encoded}"/>')

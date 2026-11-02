@@ -16,6 +16,7 @@ async function geometry(page) {
     const root = document.documentElement;
     const preview = document.querySelector('.preview-pane');
     const card = document.querySelector('.preview-card');
+    const image = document.querySelector('#preview-image');
     const exportPanel = document.querySelector('.export-panel');
     const visible = element => getComputedStyle(element).display !== 'none';
     const within = element => {
@@ -24,11 +25,15 @@ async function geometry(page) {
     };
     const controls = [...document.querySelectorAll('#editor-form button, #editor-form textarea, #editor-form input:not(.qrg-native-control), #editor-form .upload-button, #editor-form .check-row')]
       .filter(element => visible(element) && !element.hidden);
+    const frame = card.getBoundingClientRect();
+    const picture = image.getBoundingClientRect();
     return {
       pageX: root.scrollWidth - innerWidth,
       pageY: root.scrollHeight - innerHeight,
       formOverflowX: form.scrollWidth - form.clientWidth,
       previewVisible: visible(preview),
+      previewInsets: !visible(preview) ? [] : [picture.left - frame.left, picture.top - frame.top,
+        frame.right - picture.right, frame.bottom - picture.bottom],
       cardFits: !visible(preview) || within(card),
       exportFits: !visible(preview) || within(exportPanel),
       editorFits: within(form),
@@ -57,7 +62,11 @@ async function main() {
       assert.ok(measure.pageX <= 1 && measure.pageY <= 1, `${width}×${height}: page overflow ${JSON.stringify(measure)}`);
       assert.ok(measure.editorFits && measure.formOverflowX <= 1, `${width}×${height}: editor overflow ${JSON.stringify(measure)}`);
       assert.deepEqual(measure.horizontallyClippedControls, [], `${width}×${height}: controls clipped horizontally`);
-      if (!narrow) assert.ok(measure.cardFits && measure.exportFits, `${width}×${height}: preview/export clipped ${JSON.stringify(measure)}`);
+      if (!narrow) {
+        assert.ok(measure.cardFits && measure.exportFits, `${width}×${height}: preview/export clipped ${JSON.stringify(measure)}`);
+        assert.ok(measure.previewInsets.every(inset => Math.abs(inset - 1) <= 1),
+          `${width}×${height}: preview adds space around the exported image: ${measure.previewInsets}`);
+      }
       const lastSetting = page.locator('#version').locator('xpath=following-sibling::button[1]');
       await lastSetting.scrollIntoViewIfNeeded();
       assert.ok(await lastSetting.isVisible(), `${width}×${height}: final editor setting cannot be reached`);
@@ -66,6 +75,8 @@ async function main() {
         const measure = await geometry(page);
         assert.ok(measure.pageX <= 1 && measure.pageY <= 1 && measure.cardFits && measure.exportFits,
           `${width}×${height}: preview/export clipped ${JSON.stringify(measure)}`);
+        assert.ok(measure.previewInsets.every(inset => Math.abs(inset - 1) <= 1),
+          `${width}×${height}: preview adds space around the exported image: ${measure.previewInsets}`);
         assert.ok(await page.locator('#download-png').isVisible(), `${width}×${height}: PNG export unavailable`);
         assert.ok(await page.locator('#size').locator('xpath=following-sibling::button[1]').isVisible(), `${width}×${height}: export size unavailable`);
         assert.ok(await page.locator('#margin').locator('xpath=following-sibling::button[1]').isVisible(), `${width}×${height}: export margin unavailable`);
@@ -89,6 +100,8 @@ async function main() {
     await page.emulateMedia({ colorScheme: 'dark' });
     const darkBackground = await page.locator('body').evaluate(element => getComputedStyle(element).backgroundColor);
     const darkGeometry = await geometry(page);
+    assert.ok(darkGeometry.previewInsets.every(inset => Math.abs(inset - 1) <= 1),
+      `dark theme adds a preview margin: ${darkGeometry.previewInsets}`);
     await page.emulateMedia({ colorScheme: 'light' });
     assert.notEqual(await page.locator('body').evaluate(element => getComputedStyle(element).backgroundColor), darkBackground);
     assert.deepEqual(await geometry(page), darkGeometry, 'system theme must preserve layout');
@@ -148,6 +161,16 @@ async function main() {
     assert.equal(await page.locator('#margin').inputValue(), '0');
     await page.waitForFunction(() => !document.querySelector('#download-png').disabled, null, { timeout: 20000 });
     assert.equal(await page.locator('#preview-image').evaluate(image => image.naturalWidth), 256);
+    const edgeInk = await page.locator('#preview-image').evaluate(image => {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = image.naturalWidth;
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0);
+      const size = canvas.width;
+      return [[0, 0, size, 1], [0, size - 1, size, 1], [0, 0, 1, size], [size - 1, 0, 1, size]]
+        .map(edge => context.getImageData(...edge).data.some((value, index) => index % 4 < 3 && value < 200));
+    });
+    assert.deepEqual(edgeInk, [true, true, true, true], 'zero-margin preview must reach every image edge');
 
     const versionSelect = page.locator('#version').locator('xpath=following-sibling::button[1]');
     await versionSelect.click();

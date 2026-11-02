@@ -6,7 +6,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageChops
 from qrg import QRSettings, logo_options, render_qr
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +30,26 @@ class QRTests(unittest.TestCase):
 
     def run_qrg(self, *args):
         return subprocess.run([sys.executable, str(ROOT/'qrg.py'), *map(str, args)], capture_output=True, text=True)
+
+    def test_zero_margin_png_reaches_all_four_canvas_edges(self):
+        for size, version in ((64, 10), (256, 5), (1024, 5)):
+            for crisp in (False, True):
+                for module, eye in (('square', 'square'), ('tile', 'rounded')):
+                    for background in ((255, 255, 255, 255), (0, 0, 0, 0)):
+                        with self.subTest(size=size, version=version, crisp=crisp, module=module, background=background):
+                            settings = QRSettings(content=URL, version=version, error_correction='H',
+                                                  margin=0, size=size, crisp=crisp,
+                                                  module_shape=module, eye_shape=eye,
+                                                  background=background)
+                            result = render_qr(settings, 'png')
+                            with Image.open(io.BytesIO(result.data)) as image:
+                                self.assertEqual(image.size, (size, size))
+                                if background[3] == 0:
+                                    bounds = image.getchannel('A').getbbox()
+                                else:
+                                    paper = Image.new('RGB', image.size, background[:3])
+                                    bounds = ImageChops.difference(image.convert('RGB'), paper).getbbox()
+                                self.assertEqual(bounds, (0, 0, size, size))
 
     @unittest.skipUnless(sys.platform == 'darwin', 'macOS Vision 解码校验仅在 macOS 上可用')
     def test_png_decodes_with_logo(self):
@@ -132,6 +152,23 @@ class QRTests(unittest.TestCase):
         self.assertEqual((min(x for x, _ in red), max(x for x, _ in red)), (lower, upper - 1))
         self.assertGreaterEqual(min(y for _, y in red), lower)
         self.assertLess(max(y for _, y in red), upper)
+
+    def test_zero_margin_logo_fits_the_reserved_pixel_bounds(self):
+        for dimensions in ((40, 40), (40, 20)):
+            with self.subTest(dimensions=dimensions):
+                settings = QRSettings(content='x', version=1, error_correction='H',
+                                      margin=0, size=67, crisp=True,
+                                      logo=Image.new('RGB', dimensions, '#fa0000'),
+                                      logo_modules=3, logo_padding_modules=0)
+                rendered = render_qr(settings, 'png')
+                with Image.open(io.BytesIO(rendered.data)) as image:
+                    red = [(x, y) for y in range(image.height) for x in range(image.width)
+                           if image.getpixel((x, y))[:3] == (250, 0, 0)]
+                self.assertTrue(red)
+                # The three reserved columns occupy [29, 38), only nine pixels.
+                self.assertEqual((min(x for x, _ in red), max(x for x, _ in red)), (29, 37))
+                self.assertGreaterEqual(min(y for _, y in red), 29)
+                self.assertLess(max(y for _, y in red), 38)
 
     def test_module_slot_padding_expands_by_whole_cells_and_guards_alignment(self):
         icon = Image.new('RGBA', (40, 20), (250, 0, 0, 128))
