@@ -226,7 +226,7 @@
       stage.classList.remove('is-loading');
       readyBlob = result.blob;
       readyRevision = targetRevision;
-      details.textContent = result.version && result.modules ? `版本 ${result.version} · ${result.modules} × ${result.modules} 码点 · ${settings.size} × ${settings.size} px` : `${settings.size} × ${settings.size} px`;
+      details.textContent = result.version && result.modules ? `版本 ${result.version} · ${result.modules} × ${result.modules} 码点` : '';
       announce(settings.transparent ? '预览已就绪 · 透明背景' : '预览已就绪', 'ready');
       refreshButtons();
       if (previousUrl) URL.revokeObjectURL(previousUrl);
@@ -264,7 +264,7 @@
       const result = await requestImage('svg', exportController.signal);
       if (targetRevision !== revision) return;
       download(result.blob, '二维码.svg');
-      announce('SVG 已导出。请在目标设备上扫码确认。', 'ready');
+      announce('SVG 已导出', 'ready');
     } catch (error) {
       if (targetRevision !== revision || error.name === 'AbortError') return;
       announce(error instanceof TypeError ? '无法连接 QRG 服务，请检查服务是否正在运行。' : error.message, 'error');
@@ -416,7 +416,7 @@
   pngButton.addEventListener('click', () => {
     if (!pngButton.disabled && readyBlob && readyRevision === revision) {
       download(readyBlob, '二维码.png');
-      announce('PNG 已导出。请在目标设备上扫码确认。', 'ready');
+      announce('PNG 已导出', 'ready');
     }
   });
   svgButton.addEventListener('click', exportSvg);
