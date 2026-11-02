@@ -13,26 +13,26 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #14151b; --surface: #1c1e27; --raised: #242631; --subtle: #22242e;
-  --canvas: #171921; --canvas-dot: #313542;
-  --text: #edf0f8; --muted: #a6acc0; --faint: #949bb1;
-  --line: #333746; --soft-line: #2a2d39;
-  --accent: #aaa1ff; --accent-strong: #beb7ff; --accent-ink: #201b50; --soft-accent: #302c49; --focus: #b9b1ff;
+  --page: #181716; --surface: #201f1e; --raised: #2a2826; --subtle: #272523;
+  --canvas: #1b1a19; --canvas-dot: #3a3632;
+  --text: #f2efeb; --muted: #b9b2aa; --faint: #a69e96;
+  --line: #423d38; --soft-line: #34302c;
+  --accent: #c1aff2; --accent-strong: #cfbef8; --accent-ink: #241c34; --soft-accent: #342d40; --focus: #d0bbff;
   --error: #ff96a2;
   --shadow: 0 4px 12px #00000033, 0 24px 54px #00000040; --frame-shadow: 0 3px 18px #0000000a;
-  --checker: #d9dce5; --checker-base: #f7f8fc;
-  --crop-scrim: #05060ab3;
+  --checker: #dedbd8; --checker-base: #faf8f5;
+  --crop-scrim: #100d0bb3;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     color-scheme: dark;
-    --page: #14151b; --surface: #1c1e27; --raised: #242631; --subtle: #22242e;
-    --canvas: #171921; --canvas-dot: #313542; --text: #edf0f8; --muted: #a6acc0; --faint: #949bb1;
-    --line: #333746; --soft-line: #2a2d39; --accent: #aaa1ff; --accent-strong: #beb7ff; --accent-ink: #201b50;
-    --soft-accent: #302c49; --focus: #b9b1ff; --error: #ff96a2;
+    --page: #181716; --surface: #201f1e; --raised: #2a2826; --subtle: #272523;
+    --canvas: #1b1a19; --canvas-dot: #3a3632; --text: #f2efeb; --muted: #b9b2aa; --faint: #a69e96;
+    --line: #423d38; --soft-line: #34302c; --accent: #c1aff2; --accent-strong: #cfbef8; --accent-ink: #241c34;
+    --soft-accent: #342d40; --focus: #d0bbff; --error: #ff96a2;
     --shadow: 0 4px 12px #00000033, 0 24px 54px #00000040; --frame-shadow: 0 3px 18px #0000000a;
-    --checker: #d9dce5; --checker-base: #f7f8fc;
-    --crop-scrim: #05060ab3;
+    --checker: #dedbd8; --checker-base: #faf8f5;
+    --crop-scrim: #100d0bb3;
   }
 }
 * { box-sizing: border-box; }
