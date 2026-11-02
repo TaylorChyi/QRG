@@ -199,6 +199,12 @@
   "跟随浏览器": "Idioma del navegador",
   "上传二维码": "Subir imagen QR",
   "二维码内容超过 {limit} 个字符，请使用内容更短的二维码。": "El contenido del QR supera los {limit} caracteres. Usa un código QR con un contenido más corto.",
-  "可拖入二维码图片，或在此粘贴图片。": "Arrastra una imagen QR aquí o pega una imagen.",
-  "请一次只导入一张二维码图片。": "Importa una sola imagen QR cada vez."
+  "请一次只导入一张二维码图片。": "Importa una sola imagen QR cada vez.",
+  "粘贴": "Pegar",
+  "浏览器无法读取剪贴板，请在链接框使用粘贴快捷键。": "Este navegador no puede leer el portapapeles. Usa el atajo de pegar en el campo del enlace.",
+  "正在读取剪贴板…": "Leyendo el portapapeles…",
+  "剪贴板中没有可粘贴的图片或文字。": "El portapapeles no contiene imágenes ni texto para pegar.",
+  "点击粘贴剪贴板中的图片或文字": "Haz clic para pegar una imagen o texto del portapapeles",
+  "点击读取并粘贴剪贴板内容": "Haz clic para leer y pegar el contenido del portapapeles",
+  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "No se puede leer el portapapeles. Permite el acceso del navegador o usa el atajo de pegar en el campo del enlace."
 }

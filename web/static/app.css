@@ -101,11 +101,12 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .text-button:hover:not(:disabled) { text-decoration: underline; }
 .field-action { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; font-size: 12px; }
 .field-action .icon { width: 13px; height: 13px; }
-.content-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; }
-.content-field .content-input, .qr-import-hint, .qr-import-status { grid-column: 1 / -1; }
-.qr-import-hint { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.content-field .field-label { flex-wrap: wrap; }
+.content-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+.paste-button { border-radius: 4px; color: var(--muted); }
+.paste-button[data-clipboard="ready"] { color: var(--accent); background: var(--soft-accent); }
+.paste-button[data-clipboard="empty"] { opacity: .45; }
 .content-field.is-dragging textarea { border-color: var(--focus); background: var(--soft-accent); box-shadow: 0 0 0 3px var(--soft-accent); }
-.content-field.is-dragging .qr-import-hint { color: var(--accent); }
 .qr-import-status { margin: 4px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .qr-import-status.is-error { color: var(--error); }
 .upload-button { min-width: 0; flex: 1; justify-content: flex-start; }

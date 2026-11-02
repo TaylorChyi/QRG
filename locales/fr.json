@@ -199,6 +199,12 @@
   "跟随浏览器": "Langue du navigateur",
   "上传二维码": "Importer un QR code",
   "二维码内容超过 {limit} 个字符，请使用内容更短的二维码。": "Le contenu du QR code dépasse {limit} caractères. Utilisez un QR code au contenu plus court.",
-  "可拖入二维码图片，或在此粘贴图片。": "Déposez une image QR ici ou collez une image.",
-  "请一次只导入一张二维码图片。": "Importez une seule image QR à la fois."
+  "请一次只导入一张二维码图片。": "Importez une seule image QR à la fois.",
+  "粘贴": "Coller",
+  "浏览器无法读取剪贴板，请在链接框使用粘贴快捷键。": "Ce navigateur ne peut pas lire le presse-papiers. Utilisez le raccourci de collage dans le champ du lien.",
+  "正在读取剪贴板…": "Lecture du presse-papiers…",
+  "剪贴板中没有可粘贴的图片或文字。": "Le presse-papiers ne contient aucune image ni aucun texte à coller.",
+  "点击粘贴剪贴板中的图片或文字": "Cliquez pour coller une image ou du texte du presse-papiers",
+  "点击读取并粘贴剪贴板内容": "Cliquez pour lire et coller le contenu du presse-papiers",
+  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "Impossible de lire le presse-papiers. Autorisez l’accès du navigateur ou utilisez le raccourci de collage dans le champ du lien."
 }

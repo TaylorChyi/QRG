@@ -22,11 +22,15 @@ async function transfer(page, files) {
   }, files);
 }
 
-async function pasteImage(page, base64) {
+async function writeImage(page, base64) {
   await page.evaluate(async base64 => {
     const bytes = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': new Blob([bytes], { type: 'image/png' }) })]);
   }, base64);
+}
+
+async function pasteImage(page, base64) {
+  await writeImage(page, base64);
   await page.locator('#content').focus();
   await page.keyboard.press(pasteShortcut);
 }
@@ -93,6 +97,43 @@ async function main() {
     assert.equal(decodeRequests, beforeTextPaste, 'text paste must bypass image decoding');
     process.stdout.write('real image and text clipboard paste ok\n');
 
+    // The toolbar button follows real clipboard changes and replaces the content.
+    assert.equal(await page.locator('#qr-import-hint').count(), 0);
+    await page.evaluate(() => navigator.clipboard.writeText('https://example.com/paste-button'));
+    await page.waitForFunction(() => document.getElementById('paste-content').dataset.clipboard === 'ready');
+    const beforeButtonText = decodeRequests;
+    await page.locator('#paste-content').click();
+    await page.waitForFunction(() => document.getElementById('content').value === 'https://example.com/paste-button');
+    await ready(page);
+    assert.equal(decodeRequests, beforeButtonText, 'button text paste must bypass image decoding');
+    await page.locator('#undo').click();
+    assert.equal(await page.locator('#content').inputValue(), 'https://example.com/ordinary-paste');
+    await page.locator('#redo').click();
+
+    await writeImage(page, image.base64);
+    await page.waitForFunction(() => document.getElementById('paste-content').dataset.clipboard === 'ready');
+    await page.locator('#paste-content').click();
+    await page.waitForFunction(value => document.getElementById('content').value === value, target);
+    await ready(page);
+    await page.locator('#undo').click();
+    assert.equal(await page.locator('#content').inputValue(), 'https://example.com/paste-button');
+    await page.locator('#redo').click();
+
+    await page.evaluate(() => navigator.clipboard.writeText(''));
+    await page.waitForFunction(() => document.getElementById('paste-content').dataset.clipboard === 'empty');
+    assert.equal(await page.locator('#paste-content').getAttribute('data-clipboard'), 'empty');
+    assert.equal(await page.locator('#paste-content').isEnabled(), true, 'grey state must allow rechecking the clipboard');
+    await page.locator('#paste-content').click();
+    await page.waitForFunction(() => document.getElementById('qr-import-status').textContent.includes('没有可粘贴'));
+    assert.equal(await page.locator('#content').inputValue(), target, 'clipboard inspection must not alter content');
+    await page.evaluate(() => navigator.clipboard.writeText('9'.repeat(4097)));
+    await page.waitForFunction(() => document.getElementById('paste-content').dataset.clipboard === 'ready');
+    await page.locator('#paste-content').click();
+    await page.waitForFunction(() => document.getElementById('qr-import-status').textContent.includes('4096'));
+    assert.match(await page.locator('#qr-import-status').textContent(), /4096/);
+    assert.equal(await page.locator('#content').inputValue(), target);
+    process.stdout.write('paste button text/image import, empty state and history ok\n');
+
     const beforeFailure = await page.locator('#content').inputValue();
     const multiple = await transfer(page, [image, { ...image, name: 'second.png' }]);
     for (const [type, init] of [['drop', { dataTransfer: multiple }], ['paste', { clipboardData: multiple }]]) {
@@ -142,13 +183,25 @@ async function main() {
           accent: getComputedStyle(document.documentElement).getPropertyValue('--soft-accent').trim(),
         }));
         assert.notEqual(styles.background, normalBackground, 'file drag must visibly highlight the input');
-        const box = await page.locator('#qr-import-hint').boundingBox();
-        assert.ok(box && box.x >= 0 && box.x + box.width <= width, `${theme} ${width}: hint must fit`);
+        const box = await page.locator('#paste-content').boundingBox();
+        assert.ok(box && box.x >= 0 && box.x + box.width <= width, `${theme} ${width}: paste button must fit`);
         await page.dispatchEvent('#content', 'dragleave', { dataTransfer });
       }
     }
+    const unapprovedContext = await browser.newContext({ locale: 'zh-CN' });
+    const unapprovedPage = await unapprovedContext.newPage();
+    await unapprovedPage.goto(`${baseURL}/?lang=zh-CN`, { waitUntil: 'networkidle' });
+    assert.equal(await unapprovedPage.evaluate(async () =>
+      (await navigator.permissions.query({ name: 'clipboard-read' })).state), 'prompt',
+      'loading the page must not request clipboard access');
+    assert.equal(await unapprovedPage.locator('#paste-content').isEnabled(), true,
+      'first-time users must be able to click and request access');
+    await unapprovedPage.locator('#paste-content').click();
+    await unapprovedPage.waitForFunction(() => document.getElementById('qr-import-status').textContent.includes('允许浏览器'));
+    assert.equal(await unapprovedPage.locator('#content').inputValue(), 'https://example.com');
+    await unapprovedContext.close();
     assert.deepEqual(errors, []);
-    process.stdout.write('QR drag/drop, real image/text clipboard paste, history, cancellation and themes ok\n');
+    process.stdout.write('QR drag/drop, clipboard button and shortcuts, permissions, cancellation and themes ok\n');
   } finally {
     releasePending();
     await browser.close();

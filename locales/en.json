@@ -199,6 +199,12 @@
   "跟随浏览器": "Browser language",
   "上传二维码": "Upload QR image",
   "二维码内容超过 {limit} 个字符，请使用内容更短的二维码。": "QR content exceeds {limit} characters. Please use a QR code with shorter content.",
-  "可拖入二维码图片，或在此粘贴图片。": "Drop a QR image here, or paste an image.",
-  "请一次只导入一张二维码图片。": "Please import one QR image at a time."
+  "请一次只导入一张二维码图片。": "Please import one QR image at a time.",
+  "粘贴": "Paste",
+  "浏览器无法读取剪贴板，请在链接框使用粘贴快捷键。": "This browser cannot read the clipboard. Use the paste shortcut in the link field.",
+  "正在读取剪贴板…": "Reading clipboard…",
+  "剪贴板中没有可粘贴的图片或文字。": "The clipboard has no image or text to paste.",
+  "点击粘贴剪贴板中的图片或文字": "Click to paste an image or text from the clipboard",
+  "点击读取并粘贴剪贴板内容": "Click to read and paste from the clipboard",
+  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "Unable to read the clipboard. Allow browser access or use the paste shortcut in the link field."
 }

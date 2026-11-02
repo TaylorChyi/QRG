@@ -3,6 +3,7 @@
   {% if name == 'link' %}<path d="M10 13a5 5 0 0 0 7 .1l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7-.1l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>
   {% elif name == 'style' %}<path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>
   {% elif name == 'image' %}<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>
+  {% elif name == 'clipboard' %}<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6m-6 4h4"/>
   {% elif name == 'settings' %}<path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/><circle cx="12" cy="12" r="5"/>
   {% elif name == 'download' %}<path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5"/>
   {% elif name == 'external' %}<path d="M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/>
@@ -59,10 +60,8 @@
         <section class="editor" id="editor" aria-label="{{ t("二维码编辑器") }}" data-i18n-aria-label="二维码编辑器">
           <form id="editor-form" novalidate>
             <div class="field content-field">
-              <div class="field-label"><label for="content" data-i18n="链接">{{ t("链接") }}</label><button type="button" class="text-button field-action" id="open-link" title="{{ t("在新标签页打开链接") }}" data-i18n-title="在新标签页打开链接" disabled>{{ icon('external') }} <span data-i18n="跳转">{{ t("跳转") }}</span></button></div>
-              <div class="qr-import"><input id="qr-file" type="file" accept="image/png,image/jpeg,image/webp" hidden><button type="button" class="text-button field-action" id="import-qr">{{ icon('image') }}<span>{{ t('上传二维码') }}</span></button></div>
-              <div class="content-input"><textarea id="content" rows="2" placeholder="https://example.com" spellcheck="false" maxlength="4096" aria-describedby="content-count qr-import-hint"></textarea><output id="content-count" for="content">0 / 4096</output></div>
-              <p id="qr-import-hint" class="qr-import-hint" data-i18n="可拖入二维码图片，或在此粘贴图片。">{{ t('可拖入二维码图片，或在此粘贴图片。') }}</p>
+              <div class="field-label"><label for="content" data-i18n="链接">{{ t("链接") }}</label><div class="content-actions"><button type="button" class="text-button field-action" id="open-link" title="{{ t("在新标签页打开链接") }}" data-i18n-title="在新标签页打开链接" disabled>{{ icon('external') }} <span data-i18n="跳转">{{ t("跳转") }}</span></button><input id="qr-file" type="file" accept="image/png,image/jpeg,image/webp" hidden><button type="button" class="text-button field-action" id="import-qr">{{ icon('image') }}<span>{{ t('上传二维码') }}</span></button><button type="button" class="text-button field-action paste-button" id="paste-content">{{ icon('clipboard') }}<span data-i18n="粘贴">{{ t('粘贴') }}</span></button></div></div>
+              <div class="content-input"><textarea id="content" rows="2" placeholder="https://example.com" spellcheck="false" maxlength="4096" aria-describedby="content-count"></textarea><output id="content-count" for="content">0 / 4096</output></div>
               <p id="qr-import-status" class="qr-import-status" role="status" aria-live="polite" hidden></p>
             </div>
             <section class="field-section" aria-label="{{ t("颜色") }}" data-i18n-aria-label="颜色">

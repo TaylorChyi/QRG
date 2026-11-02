@@ -3,6 +3,7 @@
 
   const content = document.getElementById('content');
   const button = document.getElementById('import-qr');
+  const pasteButton = document.getElementById('paste-content');
   const fileInput = document.getElementById('qr-file');
   const status = document.getElementById('qr-import-status');
   const field = content.closest('.content-field');
@@ -11,6 +12,100 @@
   let reader = null;
   let sequence = 0;
   let dragDepth = 0;
+  let clipboardState = 'unknown';
+  let clipboardPermission = null;
+  let clipboardProbe = 0;
+  let pasteBusy = false;
+  const clipboardSupported = Boolean(navigator.clipboard?.read || navigator.clipboard?.readText);
+
+  function refreshPasteButton() {
+    pasteButton.disabled = !clipboardSupported || pasteBusy;
+    pasteButton.dataset.clipboard = clipboardState;
+    pasteButton.setAttribute('aria-busy', String(pasteBusy));
+    pasteButton.title = !clipboardSupported ? t('浏览器无法读取剪贴板，请在链接框使用粘贴快捷键。')
+      : pasteBusy ? t('正在读取剪贴板…')
+      : clipboardState === 'empty' ? t('剪贴板中没有可粘贴的图片或文字。')
+      : clipboardState === 'ready' ? t('点击粘贴剪贴板中的图片或文字') : t('点击读取并粘贴剪贴板内容');
+  }
+
+  async function readClipboard(includeImages = false) {
+    if (!navigator.clipboard.read) return { files: [], hasImage: false, text: await navigator.clipboard.readText() };
+    const items = await navigator.clipboard.read();
+    const images = items.map(item => ({ item, type: item.types.find(type => ['image/png', 'image/jpeg', 'image/webp'].includes(type))
+      || item.types.find(type => type.startsWith('image/')) }))
+      .filter(image => image.type);
+    if (images.length) {
+      const files = includeImages ? await Promise.all(images.map(async ({ item, type }) =>
+        new File([await item.getType(type)], 'clipboard-image', { type }))) : [];
+      return { files, hasImage: true, text: '' };
+    }
+    const texts = await Promise.all(items.filter(item => item.types.includes('text/plain'))
+      .map(async item => (await item.getType('text/plain')).text()));
+    return { files: [], hasImage: false, text: texts.join('\n') };
+  }
+
+  async function refreshClipboard() {
+    const probe = ++clipboardProbe;
+    if (pasteBusy || document.hidden || !document.hasFocus()) return;
+    if (clipboardPermission?.state !== 'granted') {
+      clipboardState = 'unknown';
+      refreshPasteButton();
+      return;
+    }
+    try {
+      const data = await readClipboard();
+      if (probe !== clipboardProbe) return;
+      clipboardState = data.hasImage || data.text.trim() ? 'ready' : 'empty';
+    } catch {
+      if (probe !== clipboardProbe) return;
+      clipboardState = 'unknown';
+    }
+    refreshPasteButton();
+  }
+
+  async function watchClipboard() {
+    try {
+      clipboardPermission = await navigator.permissions?.query({ name: 'clipboard-read' });
+      clipboardPermission?.addEventListener('change', refreshClipboard);
+    } catch { /* Browsers without this permission query can still read after a click. */ }
+    refreshClipboard();
+  }
+
+  function applyContent(value) {
+    if (content.maxLength >= 0 && value.length > content.maxLength) {
+      throw new Error(t('二维码内容超过 {limit} 个字符，请使用内容更短的二维码。', { limit: content.maxLength }));
+    }
+    content.dispatchEvent(new CustomEvent('qrg:import-content', { detail: value }));
+  }
+
+  pasteButton.addEventListener('click', async () => {
+    cancel();
+    const token = sequence;
+    pasteBusy = true;
+    clipboardProbe += 1;
+    refreshPasteButton();
+    try {
+      const data = await readClipboard(true);
+      if (token !== sequence) return;
+      clipboardState = data.hasImage || data.text.trim() ? 'ready' : 'empty';
+      if (data.hasImage) importFiles(data.files);
+      else if (data.text.trim()) applyContent(data.text);
+      else announce(t('剪贴板中没有可粘贴的图片或文字。'), true);
+    } catch (error) {
+      if (token !== sequence) return;
+      announce(error.name === 'Error' ? error.message
+        : t('无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。'), true);
+    } finally {
+      if (token === sequence) pasteBusy = false;
+      refreshPasteButton();
+    }
+  });
+  window.addEventListener('focus', refreshClipboard);
+  document.addEventListener('visibilitychange', refreshClipboard);
+  navigator.clipboard?.addEventListener('clipboardchange', refreshClipboard);
+  pasteButton.addEventListener('pointerenter', refreshClipboard);
+  pasteButton.addEventListener('focus', refreshClipboard);
+  for (const event of ['copy', 'cut']) document.addEventListener(event, () => setTimeout(refreshClipboard, 0));
 
   function clearDrag() {
     dragDepth = 0;
@@ -25,6 +120,7 @@
     button.setAttribute('aria-busy', String(controller !== null));
     button.querySelector('span').textContent = controller ? t('识别中…') : t('上传二维码');
     button.title = t('请提供 PNG、JPEG 或 WebP 二维码图片');
+    refreshPasteButton();
   }
 
   function announce(message = '', error = false) {
@@ -36,6 +132,7 @@
   function cancel() {
     clearDrag();
     sequence += 1;
+    pasteBusy = false;
     controller?.abort();
     controller = null;
     reader?.abort();
@@ -149,10 +246,7 @@
       if (typeof data.content !== 'string' || !data.content.trim()) {
         throw new Error(t('未识别到二维码，请检查图片和颜色对比度'));
       }
-      if (content.maxLength >= 0 && data.content.length > content.maxLength) {
-        throw new Error(t('二维码内容超过 {limit} 个字符，请使用内容更短的二维码。', { limit: content.maxLength }));
-      }
-      content.dispatchEvent(new CustomEvent('qrg:import-content', { detail: data.content }));
+      applyContent(data.content);
       announce();
     } catch (error) {
       if (token !== sequence) return;
@@ -170,4 +264,5 @@
   }
 
   refreshButton();
+  if (clipboardSupported) watchClipboard();
 })();
