@@ -198,5 +198,7 @@
   "减少": "Verringern",
   "跟随浏览器": "Browsersprache",
   "上传二维码": "QR-Bild hochladen",
-  "二维码内容超过 {limit} 个字符，请使用内容更短的二维码。": "Der QR-Inhalt überschreitet {limit} Zeichen. Bitte verwende einen QR-Code mit kürzerem Inhalt."
+  "二维码内容超过 {limit} 个字符，请使用内容更短的二维码。": "Der QR-Inhalt überschreitet {limit} Zeichen. Bitte verwende einen QR-Code mit kürzerem Inhalt.",
+  "可拖入二维码图片，或在此粘贴图片。": "Ziehe ein QR-Bild hierher oder füge ein Bild ein.",
+  "请一次只导入一张二维码图片。": "Bitte importiere jeweils nur ein QR-Bild."
 }

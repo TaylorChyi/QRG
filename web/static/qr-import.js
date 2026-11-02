@@ -5,10 +5,21 @@
   const button = document.getElementById('import-qr');
   const fileInput = document.getElementById('qr-file');
   const status = document.getElementById('qr-import-status');
+  const field = content.closest('.content-field');
   const t = (...args) => window.QRGI18n.t(...args);
   let controller = null;
   let reader = null;
   let sequence = 0;
+  let dragDepth = 0;
+
+  function clearDrag() {
+    dragDepth = 0;
+    field.classList.remove('is-dragging');
+  }
+
+  function hasFiles(event) {
+    return Array.from(event.dataTransfer?.types || []).includes('Files');
+  }
 
   function refreshButton() {
     button.setAttribute('aria-busy', String(controller !== null));
@@ -23,6 +34,7 @@
   }
 
   function cancel() {
+    clearDrag();
     sequence += 1;
     controller?.abort();
     controller = null;
@@ -39,10 +51,62 @@
   window.addEventListener('pagehide', cancel);
   document.addEventListener('qrg:languagechange', cancel);
 
-  fileInput.addEventListener('change', async () => {
+  document.addEventListener('dragenter', event => {
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    if (document.querySelector('dialog[open]')) return;
+    dragDepth += 1;
+    field.classList.add('is-dragging');
+  });
+  document.addEventListener('dragover', event => {
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = document.querySelector('dialog[open]') ? 'none' : 'copy';
+  });
+  document.addEventListener('dragleave', event => {
+    if (!dragDepth) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) clearDrag();
+  });
+  document.addEventListener('dragend', clearDrag);
+  window.addEventListener('blur', clearDrag);
+  document.addEventListener('drop', event => {
+    clearDrag();
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    if (document.querySelector('dialog[open]')) return;
+    importFiles(Array.from(event.dataTransfer.files));
+  });
+  document.addEventListener('paste', event => {
+    if (document.querySelector('dialog[open]')) return;
+    const editable = event.target.closest?.('input, textarea, [contenteditable]');
+    if (editable && editable !== content) return;
+    let images = Array.from(event.clipboardData?.items || [])
+      .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+      .map(item => item.getAsFile()).filter(Boolean);
+    if (!images.length) images = Array.from(event.clipboardData?.files || []).filter(file => file.type.startsWith('image/'));
+    if (!images.length) return;
+    event.preventDefault();
+    importFiles(images);
+  });
+
+  fileInput.addEventListener('change', () => {
     const file = fileInput.files?.[0];
     fileInput.value = '';
-    if (!file) return;
+    if (file) importFiles([file]);
+  });
+
+  function importFiles(files) {
+    if (!files.length) return;
+    if (files.length > 1) {
+      cancel();
+      announce(t('请一次只导入一张二维码图片。'), true);
+      return;
+    }
+    importFile(files[0]);
+  }
+
+  async function importFile(file) {
     cancel();
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       announce(t('请选择 PNG、JPEG 或 WebP 图片。'), true);
@@ -103,7 +167,7 @@
         refreshButton();
       }
     }
-  });
+  }
 
   refreshButton();
 })();

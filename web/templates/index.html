@@ -61,7 +61,8 @@
             <div class="field content-field">
               <div class="field-label"><label for="content" data-i18n="链接">{{ t("链接") }}</label><button type="button" class="text-button field-action" id="open-link" title="{{ t("在新标签页打开链接") }}" data-i18n-title="在新标签页打开链接" disabled>{{ icon('external') }} <span data-i18n="跳转">{{ t("跳转") }}</span></button></div>
               <div class="qr-import"><input id="qr-file" type="file" accept="image/png,image/jpeg,image/webp" hidden><button type="button" class="text-button field-action" id="import-qr">{{ icon('image') }}<span>{{ t('上传二维码') }}</span></button></div>
-              <div class="content-input"><textarea id="content" rows="2" placeholder="https://example.com" spellcheck="false" maxlength="4096" aria-describedby="content-count"></textarea><output id="content-count" for="content">0 / 4096</output></div>
+              <div class="content-input"><textarea id="content" rows="2" placeholder="https://example.com" spellcheck="false" maxlength="4096" aria-describedby="content-count qr-import-hint"></textarea><output id="content-count" for="content">0 / 4096</output></div>
+              <p id="qr-import-hint" class="qr-import-hint" data-i18n="可拖入二维码图片，或在此粘贴图片。">{{ t('可拖入二维码图片，或在此粘贴图片。') }}</p>
               <p id="qr-import-status" class="qr-import-status" role="status" aria-live="polite" hidden></p>
             </div>
             <section class="field-section" aria-label="{{ t("颜色") }}" data-i18n-aria-label="颜色">
