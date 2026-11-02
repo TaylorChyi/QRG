@@ -97,8 +97,8 @@
 
             <section class="editor-panel" role="tabpanel" id="panel-advanced" aria-labelledby="tab-advanced" tabindex="0" hidden>
               <div class="field-grid advanced-grid">
-                <div class="field"><label for="size">导出尺寸（像素）</label><input id="size" type="number" min="64" max="4096" step="1" value="1024" inputmode="numeric"></div>
-                <div class="field"><label for="margin">边距（码点）</label><input id="margin" type="number" min="0" max="32" step="1" value="4" inputmode="numeric"></div>
+                <div class="field"><label for="size">导出尺寸（像素）</label><select id="size"><option value="256">256</option><option value="512">512</option><option value="1024" selected>1024</option><option value="2048">2048</option><option value="4096">4096</option></select></div>
+                <div class="field"><label for="margin">边距（码点）</label><select id="margin"><option value="0">0</option><option value="2">2</option><option value="4" selected>4</option><option value="8">8</option></select></div>
                 <div class="field"><label for="error-correction">容错等级</label><select id="error-correction"><option value="L">L · 低</option><option value="M">M · 中</option><option value="Q">Q · 高</option><option value="H" selected>H · 最高</option></select></div>
                 <div class="field"><label for="version">二维码版本</label><select id="version"><option value="auto">自动选择</option></select></div>
               </div>

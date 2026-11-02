@@ -301,7 +301,7 @@
         }
         const wasInvalid = invalidInputs.delete(key);
         const changed = settings[key] !== value;
-        update(key, value, key === 'logo_modules' || key === 'size');
+        update(key, value, key === 'logo_modules');
         if (wasInvalid && !changed) invalidate();
         return;
       }
