@@ -19,6 +19,14 @@
   const undoButton = $('undo');
   const redoButton = $('redo');
   const logoFile = $('logo-file');
+  const tabs = [...document.querySelectorAll('[role="tab"][data-panel]')];
+  const presetButtons = [...document.querySelectorAll('[data-preset]')];
+  const presets = {
+    classic: { color: '#000000', background: '#ffffff', transparent: false, module_shape: 'tile', eye_shape: 'rounded' },
+    indigo: { color: '#4338ca', background: '#ffffff', transparent: false, module_shape: 'tile', eye_shape: 'rounded' },
+    forest: { color: '#146c53', background: '#ffffff', transparent: false, module_shape: 'circle', eye_shape: 'rounded' },
+    clay: { color: '#9a482f', background: '#fff8f0', transparent: false, module_shape: 'tile', eye_shape: 'rounded' },
+  };
   const numberBounds = { margin: [0, 32], size: [64, 4096], logo_padding_px: [0, 128], logo_scale: [5, 25] };
   const initial = {
     content: 'https://example.com', color: '#000000', background: '#ffffff', transparent: false,
@@ -84,6 +92,14 @@
     $('background-value').textContent = settings.background.toUpperCase();
     $('logo-scale-value').textContent = `${Math.round(settings.logo_scale * 100)}%`;
     $('logo-name').textContent = settings.logo_name || '未选择图片';
+    $('content-count').textContent = `${settings.content.length} / 4096`;
+    $('preview-size').textContent = `${settings.size} × ${settings.size} px`;
+    for (const button of presetButtons) {
+      const preset = presets[button.dataset.preset];
+      const selected = preset && Object.entries(preset).every(([key, value]) => settings[key] === value);
+      button.classList.toggle('is-selected', Boolean(selected));
+      button.setAttribute('aria-pressed', String(Boolean(selected)));
+    }
     $('remove-logo').hidden = !settings.logo;
     if (settings.logo !== displayedLogo) {
       const thumb = $('logo-thumb');
@@ -195,7 +211,7 @@
       readyBlob = result.blob;
       readyRevision = targetRevision;
       details.textContent = result.version && result.modules ? `版本 ${result.version} · ${result.modules} × ${result.modules} 码点 · ${settings.size} × ${settings.size} px` : `${settings.size} × ${settings.size} px`;
-      announce(settings.transparent ? '预览已更新。透明背景请在最终背景上扫码确认。' : '预览已更新。请在目标设备上扫码确认。', 'ready');
+      announce(settings.transparent ? '预览已就绪 · 透明背景' : '预览已就绪', 'ready');
       refreshButtons();
       if (previousUrl) URL.revokeObjectURL(previousUrl);
     } catch (error) {
@@ -272,6 +288,46 @@
         control.value = key === 'logo_scale' ? String(Math.round(settings.logo_scale * 100)) : String(settings[key]);
         invalidate();
       }
+    });
+  }
+
+  function activateTab(tab, focus = false) {
+    for (const item of tabs) {
+      const active = item === tab;
+      item.setAttribute('aria-selected', String(active));
+      item.tabIndex = active ? 0 : -1;
+      const panel = $(item.dataset.panel);
+      if (panel) panel.hidden = !active;
+    }
+    if (focus) tab.focus();
+  }
+
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => activateTab(tab));
+    tab.addEventListener('keydown', (event) => {
+      const index = tabs.indexOf(tab);
+      let next;
+      if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+      else if (event.key === 'ArrowLeft') next = tabs[(index - 1 + tabs.length) % tabs.length];
+      else if (event.key === 'Home') next = tabs[0];
+      else if (event.key === 'End') next = tabs[tabs.length - 1];
+      else return;
+      event.preventDefault();
+      activateTab(next, true);
+    });
+  }
+
+  for (const button of presetButtons) {
+    button.addEventListener('click', () => {
+      const preset = presets[button.dataset.preset];
+      if (!preset || Object.entries(preset).every(([key, value]) => settings[key] === value)) return;
+      past.push({ ...settings });
+      if (past.length > 40) past.shift();
+      future = [];
+      lastEdit = { key: null, time: 0 };
+      settings = { ...settings, ...preset };
+      syncControls();
+      invalidate();
     });
   }
 
