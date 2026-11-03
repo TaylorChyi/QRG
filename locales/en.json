@@ -206,5 +206,6 @@
   "剪贴板中没有可粘贴的图片或文字。": "The clipboard has no image or text to paste.",
   "点击粘贴剪贴板中的图片或文字": "Click to paste an image or text from the clipboard",
   "点击读取并粘贴剪贴板内容": "Click to read and paste from the clipboard",
-  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "Unable to read the clipboard. Allow browser access or use the paste shortcut in the link field."
+  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "Unable to read the clipboard. Allow browser access or use the paste shortcut in the link field.",
+  "所选版本容量不足，已自动选择版本 {version}。": "The selected version has insufficient capacity; version {version} was selected automatically."
 }

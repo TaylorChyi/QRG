@@ -15,7 +15,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import HTTPException
 import zxingcpp
 
-from qrg import LogoSizeError, QRSettings, color, logo_options, render_qr
+from qrg import LogoSizeError, QRCapacityError, QRSettings, color, logo_options, render_qr
 from qrg_i18n import LANGUAGES, catalogue, negotiate_locale, reset_locale, resolve_locale, set_locale, t
 
 ROOT = Path(__file__).resolve().parent
@@ -259,6 +259,8 @@ def render():
         output_format = choice(data, 'format', 'png', ('png', 'svg'))
         settings = settings_from_json(data)
         result = render_qr(settings, output_format)
+    except QRCapacityError as exc:
+        return jsonify(error=str(exc), code='capacity_exceeded', minimum_version=exc.minimum_version), 400
     except LogoSizeError as exc:
         details = {'error': str(exc), 'max_logo_modules': exc.max_modules}
         options = available_logo_options()

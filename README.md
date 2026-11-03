@@ -22,6 +22,8 @@ Web 界面直接排列链接、颜色、形状、Logo 和二维码规格，提�
 
 上传 Logo 后可框选实际使用的范围，拖动选区、调整四角或输入上、下、左、右各边裁去的像素数，并在确认后应用到预览及 PNG/SVG 导出。「整张」可恢复完整图片；「调整范围」可重新编辑原图，裁剪也支持撤销/重做。Logo 大小按完整网格选择，例如「5 × 5 格」，图片等比放入所选范围；周围留白按码点提供 0、1、2 档，每档直接对应实际清除的完整码点，0 表示只清除 Logo 槽。大小和留白选项根据当前二维码版本及定位结构调整，隐藏无法放置的组合；缩小二维码后会收敛到可用范围。偶数边长的 Logo 槽会偏离几何中心半格，避免额外清除一行或一列。二维码版本提供自动、1、3、5、10；自动选择仍支持完整版本范围。
 
+所选二维码版本容不下当前内容时，Web 界面会切换到「自动选择」并提示实际使用的版本，保留完整内容和容错等级；切换会随本次编辑一起撤销或重做。超过最大版本容量时仍会报错并禁止导出。命令行与 Web 接口的固定版本请求仍严格校验容量；接口容量错误返回 `code: "capacity_exceeded"` 和 `minimum_version`，后者在任何版本均无法容纳时为 `null`。
+
 链接区域的「上传二维码」可上传已有的 PNG、JPEG 或 WebP 二维码；也可把图片文件拖入页面，或在链接框内粘贴剪贴板图片。每次导入一张图片，识别后自动填入内容并更新高清预览，可直接导出 PNG 或 SVG，也可撤销和重做。图片最多 2 MiB、宽高各不超过 4096 像素；识别失败、包含多个二维码或识别内容超过输入上限时保留原内容。在识别期间输入新内容、撤销、重做或导入另一张图片，会取消旧结果；不会自动打开识别出的链接。低清图片仍需保留足够可辨识的码点，严重模糊或缺失的二维码可能无法识别。
 
 右上角的「粘贴」可直接读取剪贴板：图片会识别后填入链接框，文字则直接填入。支持剪贴板状态检测且已获读取权限时，有可粘贴内容会点亮按钮，空剪贴板时变灰；灰色状态仍可点击，重新检查剪贴板。首次未授权时按钮保持可点击，点击后按浏览器提示允许读取；页面加载时只查询权限，不请求授权。浏览器不支持读取时，可在链接框使用粘贴快捷键。
@@ -70,6 +72,7 @@ Web 接口测试在 macOS、Linux 均可运行；其中 macOS Vision 的真实�
 ```sh
 npm install --prefix build/browser-qa --no-package-lock --no-save playwright-core@1.64.1
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_web_ui.cjs
+QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_capacity_ui.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_logo_ui.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_preview_zoom.cjs
 QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node tests/test_image_corners_ui.cjs

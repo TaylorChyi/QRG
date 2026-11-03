@@ -50,6 +50,7 @@
   let previewZoom = 100;
   let decodeController = null;
   let decodeWindow = null;
+  let versionAdjusted = false;
 
   function webLink(value) {
     try {
@@ -107,7 +108,7 @@
 
   function announce(message = '', kind = '') {
     status.textContent = message;
-    status.className = kind === 'error' ? 'preview-error' : 'visually-hidden';
+    status.className = kind === 'error' ? 'preview-error' : kind === 'notice' ? 'preview-notice' : 'visually-hidden';
   }
 
   function refreshButtons() {
@@ -206,6 +207,7 @@
 
   function update(key, value, coalesce = false) {
     if (settings[key] === value && (key !== 'background' || !settings.transparent)) return;
+    versionAdjusted = false;
     const now = Date.now();
     if (!(coalesce && lastEdit.key === key && now - lastEdit.time < 650 && future.length === 0)) {
       past.push({ ...settings });
@@ -222,6 +224,7 @@
 
   function travel(from, to) {
     if (!from.length) return;
+    versionAdjusted = false;
     logoReadToken += 1;
     window.QRGLogoCrop.close();
     to.push({ ...settings });
@@ -254,9 +257,12 @@
       const data = await response.json().catch(() => null);
       const error = new Error(data?.error || t('生成失败（HTTP {status}）', { status: response.status }));
       error.logoOptions = data?.logo_options;
+      error.code = data?.code;
+      error.minimumVersion = data?.minimum_version;
       throw error;
     }
     return { blob: await response.blob(),
+      version: Number(response.headers.get('X-QRG-Version')),
       cornerRadius: Number(response.headers.get('X-QRG-Image-Corner-Radius')) || 0,
       logoOptions: JSON.parse(response.headers.get('X-QRG-Logo-Options') || 'null') };
   }
@@ -280,11 +286,19 @@
       stage.classList.remove('is-loading');
       readyBlob = result.blob;
       readyRevision = targetRevision;
-      announce();
+      announce(versionAdjusted ? t('所选版本容量不足，已自动选择版本 {version}。', { version: result.version }) : '', versionAdjusted ? 'notice' : '');
       refreshButtons();
       if (previousUrl) URL.revokeObjectURL(previousUrl);
     } catch (error) {
       if (targetRevision !== revision || error.name === 'AbortError') return;
+      if (error.code === 'capacity_exceeded' && settings.version !== null
+          && Number.isInteger(error.minimumVersion) && error.minimumVersion > settings.version && error.minimumVersion <= 40) {
+        settings = { ...settings, version: null };
+        versionAdjusted = true;
+        syncControls();
+        invalidate();
+        return;
+      }
       if (adoptLogoOptions(error.logoOptions)) { syncControls(); invalidate(); return; }
       syncControls();
       stage.classList.remove('is-loading');

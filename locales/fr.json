@@ -206,5 +206,6 @@
   "剪贴板中没有可粘贴的图片或文字。": "Le presse-papiers ne contient aucune image ni aucun texte à coller.",
   "点击粘贴剪贴板中的图片或文字": "Cliquez pour coller une image ou du texte du presse-papiers",
   "点击读取并粘贴剪贴板内容": "Cliquez pour lire et coller le contenu du presse-papiers",
-  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "Impossible de lire le presse-papiers. Autorisez l’accès du navigateur ou utilisez le raccourci de collage dans le champ du lien."
+  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "Impossible de lire le presse-papiers. Autorisez l’accès du navigateur ou utilisez le raccourci de collage dans le champ du lien.",
+  "所选版本容量不足，已自动选择版本 {version}。": "La capacité de la version choisie est insuffisante ; la version {version} a été sélectionnée automatiquement."
 }

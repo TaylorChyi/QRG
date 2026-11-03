@@ -167,7 +167,9 @@ textarea:hover, select:hover, input[type="number"]:hover { border-color: var(--f
 .preview-zoom #zoom-reset { width: 64px; color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
 .preview-zoom output { pointer-events: none; }
 .export-panel { --export-gap: 12px; min-width: 0; padding: 24px 32px; border-top: 1px solid var(--line); background: var(--surface); }
-.preview-error { overflow-wrap: anywhere; margin: 0 0 10px; color: var(--error); font-size: 11px; line-height: 1.7; text-align: center; }
+.preview-error, .preview-notice { overflow-wrap: anywhere; margin: 0 0 10px; font-size: 11px; line-height: 1.7; text-align: center; }
+.preview-error { color: var(--error); }
+.preview-notice { color: var(--muted); }
 .export-settings.field-grid { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: var(--export-gap); max-width: 520px; margin: 0 auto var(--export-gap); }
 .export-panel .check-row { max-width: 520px; margin: 12px auto 18px; }
 .download-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--export-gap); max-width: 520px; margin: auto; }

@@ -206,5 +206,6 @@
   "剪贴板中没有可粘贴的图片或文字。": "El portapapeles no contiene imágenes ni texto para pegar.",
   "点击粘贴剪贴板中的图片或文字": "Haz clic para pegar una imagen o texto del portapapeles",
   "点击读取并粘贴剪贴板内容": "Haz clic para leer y pegar el contenido del portapapeles",
-  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "No se puede leer el portapapeles. Permite el acceso del navegador o usa el atajo de pegar en el campo del enlace."
+  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "No se puede leer el portapapeles. Permite el acceso del navegador o usa el atajo de pegar en el campo del enlace.",
+  "所选版本容量不足，已自动选择版本 {version}。": "La versión seleccionada no tiene capacidad suficiente; se ha elegido automáticamente la versión {version}."
 }

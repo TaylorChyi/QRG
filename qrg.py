@@ -56,6 +56,12 @@ class QRSettings:
     logo_padding_modules: int | None = None
 
 
+class QRCapacityError(ValueError):
+    def __init__(self, minimum_version):
+        self.minimum_version = minimum_version
+        super().__init__(t('内容无法放入指定版本和容错等级；请选择更大的版本或自动版本'))
+
+
 class LogoSizeError(ValueError):
     def __init__(self, max_modules):
         self.max_modules = max_modules
@@ -126,9 +132,15 @@ def render_qr(args: QRSettings, output_format: str) -> RenderResult:
     qr = qrcode.QRCode(version=args.version, error_correction=LEVELS[args.error_correction], box_size=1, border=0)
     qr.add_data(args.content)
     try:
-        qr.make(fit=args.version is None)
-    except DataOverflowError:
-        raise ValueError(t('内容无法放入指定版本和容错等级；请选择更大的版本或自动版本')) from None
+        minimum_version = qr.best_fit(start=1)
+    except (DataOverflowError, ValueError):
+        # best_fit can raise ValueError when its version setter rejects version 41.
+        raise QRCapacityError(None) from None
+    if args.version is not None:
+        if args.version < minimum_version:
+            raise QRCapacityError(minimum_version)
+        qr.version = args.version
+    qr.make(fit=False)
     matrix = qr.get_matrix(); n = len(matrix); total = n + 2 * args.margin
     if args.logo_modules is not None and args.logo_modules > n // 4:
         raise LogoSizeError(n // 4)

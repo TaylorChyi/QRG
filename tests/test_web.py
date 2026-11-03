@@ -300,6 +300,37 @@ class WebTests(unittest.TestCase):
                 self.assertEqual(result.status_code, 400)
                 self.assertIn('error', result.json)
 
+    def test_capacity_error_reports_encoder_minimum_without_relaxing_fixed_version(self):
+        content = ('https://newcall.5gnewcall.cn/basicservice/#/pages/promotion/premium?'
+                   'channel=300677&activityCode=QGtonghuazunxianghuodong')
+        rejected = self.render(content=content, version=5, error_correction='Q')
+        self.assertEqual(rejected.status_code, 400)
+        self.assertEqual(rejected.json['code'], 'capacity_exceeded')
+        self.assertEqual(rejected.json['minimum_version'], 9)
+        for output_format in ('png', 'svg'):
+            with self.subTest(format=output_format):
+                fitted = self.render(content=content, version=None, error_correction='Q',
+                                     module_shape='tile', eye_shape='rounded', format=output_format)
+                self.assertEqual(fitted.status_code, 200)
+                self.assertEqual(fitted.headers['X-QRG-Version'], '9')
+                self.assertEqual(fitted.headers['X-QRG-Modules'], '53')
+                if output_format == 'png':
+                    self.assertEqual(self.decode(fitted.data).json, {'content': content})
+
+        # The recommendation uses encoded data, including UTF-8 and numeric compression.
+        for text in ('二维码' * 30, '1234567890' * 30):
+            rejected = self.render(content=text, version=1, error_correction='Q')
+            fitted = self.render(content=text, error_correction='Q')
+            self.assertEqual(rejected.status_code, 400)
+            self.assertEqual(rejected.json['minimum_version'], int(fitted.headers['X-QRG-Version']))
+
+    def test_unencodable_content_has_no_recovery_version(self):
+        for version in (1, None):
+            response = self.render(content='x' * 4096, version=version, error_correction='H')
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.json['code'], 'capacity_exceeded')
+            self.assertIsNone(response.json['minimum_version'])
+
     def test_invalid_fields_are_controlled_client_errors(self):
         cases = [
             {'content': ''}, {'content': None}, {'content': '文' * 3000}, {'content': '\ud800'},

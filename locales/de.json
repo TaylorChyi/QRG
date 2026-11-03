@@ -206,5 +206,6 @@
   "剪贴板中没有可粘贴的图片或文字。": "Die Zwischenablage enthält kein Bild und keinen Text zum Einfügen.",
   "点击粘贴剪贴板中的图片或文字": "Klicken, um ein Bild oder Text aus der Zwischenablage einzufügen",
   "点击读取并粘贴剪贴板内容": "Klicken, um die Zwischenablage zu lesen und einzufügen",
-  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "Die Zwischenablage kann nicht gelesen werden. Erlaube dem Browser den Zugriff oder verwende die Tastenkombination zum Einfügen im Linkfeld."
+  "无法读取剪贴板，请允许浏览器访问，或在链接框使用粘贴快捷键。": "Die Zwischenablage kann nicht gelesen werden. Erlaube dem Browser den Zugriff oder verwende die Tastenkombination zum Einfügen im Linkfeld.",
+  "所选版本容量不足，已自动选择版本 {version}。": "Die gewählte Version hat nicht genügend Kapazität; Version {version} wurde automatisch ausgewählt."
 }
