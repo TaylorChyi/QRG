@@ -11,6 +11,19 @@ node_modules/
 .DS_Store
 .idea/
 .vscode/
+.local/
+native/**/bin/
+native/**/obj/
+native/**/build/
+native/**/.hvigor/
+native/**/oh_modules/
+native/**/local.properties
+native/**/*.p12
+native/**/*.p7b
+native/**/*.jks
+native/**/*.keystore
+native/**/Pods/
+native/**/xcuserdata/
 
 # Local QR examples and source artwork, kept outside the distributable project.
 WeLink-*
