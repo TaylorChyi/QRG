@@ -2,7 +2,25 @@
 
 # QRG
 
-二维码工具，当前开发范围为可自部署的 Web 界面及其共用的命令行生成能力。输入链接，输出 PNG 或 SVG。命令行在本机生成；Web 版在运行 QRG 的服务器生成，不调用第三方二维码服务。仓库保留既有 macOS 图形界面源码和使用说明，但不再开发或进行日常构建、测试与验收。
+二维码工具，提供公开的浏览器版、可自部署的 Web 界面及命令行生成能力。输入链接，输出 PNG 或 SVG。公开的 Sites 版在浏览器内处理，命令行在本机生成，自部署 Web 版在自己的服务器生成，均不调用第三方二维码服务。仓库保留既有 macOS 图形界面源码和使用说明，但不再开发或进行日常构建、测试与验收。
+
+## 公开网站（ChatGPT Sites）
+
+打开 [qrg.taylorchyi.chatgpt.site](https://qrg.taylorchyi.chatgpt.site) 即可使用，无需安装。网站公开访问，复用本仓库的编辑器界面，支持颜色、形状、Logo 裁剪、PNG/SVG 导出、二维码图片导入、8 种语言及浅色／深色外观。
+
+Sites 版的二维码生成和图片识别在访问者的浏览器内完成，不上传输入内容、Logo 或二维码图片；识别使用随网站提供的 ZXing WebAssembly。它以静态网站托管，HTTP 接口仍由下面的 Python 自部署版提供。PNG 使用浏览器 Canvas 输出，边缘抗锯齿可能与 Python 版略有差异。
+
+Sites 源码在 `sites/`，站点绑定在 `.openai/hosting.json`。本地构建需要 Node.js 20 或更高版本及 Web 版的 Python 依赖：
+
+```sh
+./script/setup-web
+npm ci
+npm run test:sites
+npm run build
+python3 -m http.server 8765 --bind 127.0.0.1 --directory dist
+```
+
+浏览器打开 [http://127.0.0.1:8765](http://127.0.0.1:8765)。构建从现有 Jinja 模板和静态资源生成 `dist/`，不更改 Python Web／CLI 的运行方式。可通过 `QRG_PYTHON` 指定构建使用的 Python 解释器。浏览器回归运行 `QRG_PLAYWRIGHT_MODULE="$PWD/build/browser-qa/node_modules/playwright-core" node sites/tests/site-ui.cjs`，复用下文说明的 Playwright／Chrome 环境。
 
 ## Web 版与调测 Action
 
