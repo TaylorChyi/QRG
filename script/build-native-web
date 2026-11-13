@@ -18,15 +18,15 @@ target = ROOT / 'build/native-web'
 target.mkdir(parents=True, exist_ok=True)
 shutil.copytree(source, target, dirs_exist_ok=True)
 shutil.copyfile(ROOT / 'native/shared/native.js', target / 'native.js')
-html = (target / 'index.html').read_text()
+html = (target / 'index.html').read_text(encoding='utf-8')
 entry = '  <script src="/static/site-runtime.js" defer></script>'
 if html.count(entry) != 1:
     raise RuntimeError('Sites script entry changed; review the native build adapter')
 html = html.replace(entry, '  <script src="/native.js" defer></script>\n' + entry)
-(target / 'index.html').write_text(html)
+(target / 'index.html').write_text(html, encoding='utf-8')
 
 app_path = target / 'static/app.js'
-app = app_path.read_text()
+app = app_path.read_text(encoding='utf-8')
 replacements = {
     '  function download(blob, filename) {':
         '  async function download(blob, filename) {\n'
@@ -57,5 +57,5 @@ for before, after in replacements.items():
     if app.count(before) != 1:
         raise RuntimeError('Web export handler changed; review the native build adapter')
     app = app.replace(before, after)
-app_path.write_text(app)
+app_path.write_text(app, encoding='utf-8')
 print(f'Built native browser assets in {target}')

@@ -23,6 +23,22 @@ dotnet publish (Join-Path $PSScriptRoot 'QRG.Windows.csproj') `
 if ($LASTEXITCODE -ne 0) { throw 'Windows publish failed.' }
 
 Copy-Item -Recurse -Path $site -Destination (Join-Path $publish 'site')
+$nugetRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else {
+    Join-Path $env:USERPROFILE '.nuget\packages'
+}
+$webViewLicences = Join-Path $nugetRoot 'microsoft.web.webview2\1.0.4314.35'
+$dotnetRoot = if ($env:DOTNET_ROOT) { $env:DOTNET_ROOT } else {
+    Split-Path (Get-Command dotnet).Source -Parent
+}
+foreach ($notice in @(
+    @{ Source = (Join-Path $webViewLicences 'LICENSE.txt'); Name = 'WEBVIEW2-LICENSE.txt' },
+    @{ Source = (Join-Path $webViewLicences 'NOTICE.txt'); Name = 'WEBVIEW2-NOTICE.txt' },
+    @{ Source = (Join-Path $dotnetRoot 'LICENSE.txt'); Name = 'DOTNET-LICENSE.txt' },
+    @{ Source = (Join-Path $dotnetRoot 'ThirdPartyNotices.txt'); Name = 'DOTNET-THIRD-PARTY-NOTICES.txt' }
+)) {
+    if (-not (Test-Path $notice.Source)) { throw "Required redistributable notice is missing: $($notice.Source)" }
+    Copy-Item -Path $notice.Source -Destination (Join-Path $publish $notice.Name)
+}
 @"
 QRG for Windows $Version ($Runtime)
 

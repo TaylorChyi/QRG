@@ -17,7 +17,7 @@ python script/build-native-web --skip-build
 
 The script produces a self-contained .NET app ZIP in `build/release/`. Windows
 ARM64 is also supported with `-Runtime win-arm64`. The archive includes all
-site files and the WebView2 SDK loader; the Microsoft Edge WebView2 Runtime is
+site files, WebView2 SDK and .NET redistribution notices; the Microsoft Edge WebView2 Runtime is
 provided by Windows 11 and most Windows 10 installations, or can be installed
 from [Microsoft's official download page](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
 
