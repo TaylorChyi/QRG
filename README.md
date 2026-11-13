@@ -2,6 +2,14 @@
 
 <h1 align="center">QRG</h1>
 
+<p align="center">
+  <a href="https://qrg.taylorchyi.chatgpt.site"><img src="assets/badges/online.svg" alt="在线使用 QRG"></a>
+  <img src="assets/badges/export.svg" alt="支持 PNG 和 SVG 导出">
+  <img src="assets/badges/browser.svg" alt="二维码在浏览器内处理">
+</p>
+
+<p align="center"><strong>简体中文</strong> · <a href="README.en.md">English</a></p>
+
 <p align="center"><strong>在线制作二维码，让每个链接都有合适的样式。</strong></p>
 <p align="center">实时预览 · 自定义颜色与 Logo · PNG / SVG 导出 · 浏览器内处理</p>
 <p align="center"><a href="https://qrg.taylorchyi.chatgpt.site"><strong>立即使用 →</strong></a></p>
