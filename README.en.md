@@ -8,7 +8,9 @@
   <img src="assets/badges/browser.svg" alt="QR processing in your browser">
 </p>
 
-<p align="center"><a href="README.md">简体中文</a> · <strong>English</strong></p>
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <strong>English</strong> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a>
+</p>
 
 <p align="center"><strong>Make a QR code that suits your link.</strong></p>
 <p align="center">Live preview · Custom colours and logos · PNG and SVG export · Processing in your browser</p>
@@ -17,8 +19,8 @@
 QRG is an online QR code generator for websites, posters, business cards and presentations. Paste a link or enter text, adjust the design and download the result. There is nothing to install.
 
 <p align="center">
-  <img src="assets/readme-editor.jpg" width="360" alt="QRG editor showing the link, colour, shape and logo controls">
-  <img src="assets/readme-preview.jpg" width="360" alt="QRG QR code preview with PNG and SVG export options">
+  <img src="assets/screenshots/en/editor.jpg" width="360" alt="QRG editor showing the link, colour, shape and logo controls">
+  <img src="assets/screenshots/en/preview.jpg" width="360" alt="QRG QR code preview with PNG and SVG export options">
 </p>
 
 ## From link to QR code in three steps

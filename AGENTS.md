@@ -8,11 +8,32 @@
 
 ## 文档分工
 
-- `README.md`（简体中文）与 `README.en.md`（English）面向使用者，互相提供语言切换链接，介绍产品价值、在线入口、真实功能、使用流程和必要的使用建议；同步更新两版内容，保持宣传内容准确、简洁。英文版在线入口使用 `?lang=en`，直接打开英文界面。
+- README 面向使用者，介绍产品价值、在线入口、真实功能、使用流程和必要的使用建议；保持宣传内容准确、简洁。网页支持的每种语言都应有对应 README 和真实界面截图。同步更新各语言内容，顶部导航链接全部版本；在线入口使用对应的 `?lang=<语言代码>`，直接打开同语言界面。
 - 标题下的徽章使用 `assets/badges/` 中的本地 SVG，展示在线入口、导出格式和浏览器内处理能力；只展示已实现的能力，不添加未经核实的许可证、构建或覆盖率状态。
 - 项目范围、架构、依赖、运行与部署命令、API 契约、测试、发布流程和资源制作说明集中在本文件；不要将开发日志、验收过程或协作约定写回 README。
-- README 的界面图来自实际运行的网页，保存在 `assets/readme-editor.jpg` 和 `assets/readme-preview.jpg`。界面变化影响宣传图时再更新；不要把设计稿当作已实现功能的证据。
+- README 的界面图来自实际运行的网页，每种语言展示编辑和预览／导出两张同语言截图。简体中文保留 `assets/readme-editor.jpg` 和 `assets/readme-preview.jpg`；其他语言保存在 `assets/screenshots/<语言代码>/editor.jpg`、`preview.jpg`。界面变化影响宣传图时再更新；不要把设计稿当作已实现功能的证据。
 - 区分浏览器在线版与 Python 自部署版的数据处理方式；不要把某一版的验证结果扩展到另一版，也不要将浏览器检查当作真实设备扫码验收。
+
+| 网页语言 | 产品 README | 截图位置 |
+| --- | --- | --- |
+| `zh-CN` | `README.md` | `assets/readme-editor.jpg`、`assets/readme-preview.jpg` |
+| `zh-TW` | `README.zh-TW.md` | `assets/screenshots/zh-TW/` |
+| `en` | `README.en.md` | `assets/screenshots/en/` |
+| `ja` | `README.ja.md` | `assets/screenshots/ja/` |
+| `ko` | `README.ko.md` | `assets/screenshots/ko/` |
+| `es` | `README.es.md` | `assets/screenshots/es/` |
+| `fr` | `README.fr.md` | `assets/screenshots/fr/` |
+| `de` | `README.de.md` | `assets/screenshots/de/` |
+
+更新非简体中文截图时，先按「检查与验证」准备 Playwright Core 和 Chrome，再运行：
+
+```sh
+node script/capture-readme-screenshots.cjs
+# 只更新指定语言
+node script/capture-readme-screenshots.cjs en ja
+```
+
+脚本默认读取公开站点，为上表中除简体中文外的七种语言采集 602×804、深色系统外观的真实编辑与预览画面；简体中文原图保持不变。使用相同二维码内容与设置，等待生成完成并解码核对内容，再检查语言、弹窗和导出按钮可见性。`QRG_SCREENSHOT_URL`、`QRG_SCREENSHOT_DIR` 可分别指定待核对的 Sites 页面和输出目录；`QRG_PLAYWRIGHT_MODULE`、`BROWSER_EXECUTABLE_PATH` 可指定本机依赖。
 
 ## 实现与入口
 

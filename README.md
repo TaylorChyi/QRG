@@ -3,16 +3,18 @@
 <h1 align="center">QRG</h1>
 
 <p align="center">
-  <a href="https://qrg.taylorchyi.chatgpt.site"><img src="assets/badges/online.svg" alt="在线使用 QRG"></a>
+  <a href="https://qrg.taylorchyi.chatgpt.site/?lang=zh-CN"><img src="assets/badges/online.svg" alt="在线使用 QRG"></a>
   <img src="assets/badges/export.svg" alt="支持 PNG 和 SVG 导出">
   <img src="assets/badges/browser.svg" alt="二维码在浏览器内处理">
 </p>
 
-<p align="center"><strong>简体中文</strong> · <a href="README.en.md">English</a></p>
+<p align="center">
+  <strong>简体中文</strong> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a>
+</p>
 
 <p align="center"><strong>在线制作二维码，让每个链接都有合适的样式。</strong></p>
 <p align="center">实时预览 · 自定义颜色与 Logo · PNG / SVG 导出 · 浏览器内处理</p>
-<p align="center"><a href="https://qrg.taylorchyi.chatgpt.site"><strong>立即使用 →</strong></a></p>
+<p align="center"><a href="https://qrg.taylorchyi.chatgpt.site/?lang=zh-CN"><strong>立即使用 →</strong></a></p>
 
 QRG 是一个在线二维码工具。在浏览器中粘贴链接、调整样式，就能导出适合网页、海报、名片或演示文稿的二维码，无需安装。
 
@@ -23,7 +25,7 @@ QRG 是一个在线二维码工具。在浏览器中粘贴链接、调整样式�
 
 ## 从链接到二维码，只需三步
 
-1. 打开 [QRG 在线版](https://qrg.taylorchyi.chatgpt.site)，粘贴链接或输入文字。
+1. 打开 [QRG 在线版](https://qrg.taylorchyi.chatgpt.site/?lang=zh-CN)，粘贴链接或输入文字。
 2. 选择颜色、形状和背景，按需添加 Logo，实时查看效果。
 3. 导出 PNG 图片，或下载 SVG，用于继续排版与印刷。
 
